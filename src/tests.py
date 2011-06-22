@@ -4,6 +4,7 @@
 import matplotlib
 matplotlib.use("AGG") 
 import pylab as pl
+import pymc as mc
 
 import models
 import data
@@ -11,10 +12,7 @@ import graphics
 
 class TestClass:
     def setUp(self):
-        pass
-
-    def test_models(self):
-        assert True, 'Write test, fail, write code, pass'
+        self.X = data.sim_data(10)
 
     def test_sim_data(self):
         sim_data = data.sim_data(10)
@@ -38,3 +36,9 @@ class TestClass:
         X = data.sim_data(10, [.1, .4, .5], [.1, .1, .1])
         Y = models.bad_model(X)
         assert pl.all(Y.sum(axis=1) == 1), 'should be all ones, (%s found)' % str(Y)
+
+    def test_good_model(self):
+        vars = models.latent_dirichlet(self.X)
+        assert pl.sum(vars['pi'].value) <= 1.0, 'pi value should sum to at most 1, (%s found)' % sum(vars['pi'].value)
+        m = mc.MCMC(vars)
+        m.sample(10)
