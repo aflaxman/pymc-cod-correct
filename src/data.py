@@ -15,21 +15,21 @@ def simulate_data(N):
     return pl.array(X).T
 	
 def sim_data(N,true_csmf,true_csmf_sd):
-	""" 
-	Create an NxJ matrix of simulated data (J is determined by the length 
-	  of true_csmf). 
-	
-	true_csmf - a list of true cause fractions (must sum to one)
-	true_csmf_sd - a list of the standard deviations corresponding to the true csmf's
-	"""
-	assert sum(true_csmf)==1, 'The sum of elements of true_csmf must equal 1' 
-	assert len(true_csmf)==len(true_csmf_sd), 'The length of true_csmf and true_csmf_sd must be the same'
-	X = []
-	for i in range(len(true_csmf)):
-		x = mc.rnormal(mu=true_csmf[i], tau=true_csmf_sd[i]**-2, size=N) # this can (does) give cause fractions outside [0,1]
-		if i == 0: 
-			X = x
-		else: 
-			X = np.vstack((X,x))
-	return X.T
+    """ 
+    Create an NxJ matrix of simulated data (J is determined by the length 
+    of true_csmf). 
+    
+    true_csmf - a list of true cause fractions (must sum to one)
+    true_csmf_sd - a list of the standard deviations corresponding to the true csmf's
+    """
+    assert sum(true_csmf)==1, 'The sum of elements of true_csmf must equal 1' 
+    assert len(true_csmf)==len(true_csmf_sd), 'The length of true_csmf and true_csmf_sd must be the same'
+    X = []
+    for i in range(len(true_csmf)):
+        x = mc.rnormal(mu=true_csmf[i], tau=true_csmf_sd[i]**-2, size=N) # this can (does) give cause fractions outside [0,1]
+        if i == 0: 
+            X = x
+        else: 
+            X = np.vstack((X,x))
+    return X.T
 	
