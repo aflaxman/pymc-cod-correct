@@ -6,15 +6,15 @@ import numpy as np
 # don't want to
 
 # plot of simulated data
-def plot_sim_data(X, index=[0,1]): 
+def plot_sim_data(X, i=0, j=1): 
     if np.concatenate(X).max() > 1 or np.concatenate(X).min() < 0: 
         print 'Warning: data outside [0,1] is not shown'
     pl.clf()
-    pl.axis([0,1,0,1])
-    pl.xlabel('csmf (cause %d)' %(index[0]+1))
-    pl.ylabel('csmf (cause %d)' %(index[1]+1))	
-    pl.plot(X[:,index[0]], X[:,index[1]], 'g.')
+    pl.xlabel('csmf (cause %d)' %(i+1))
+    pl.ylabel('csmf (cause %d)' %(j+1))	
+    pl.plot(X[:,i], X[:,j], 'g.')
     if np.shape(X)[1]==2: 
         pl.plot([1,0],[0,1])
+    pl.axis([0,1,0,1])
 	
 	

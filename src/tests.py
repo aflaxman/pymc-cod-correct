@@ -3,6 +3,7 @@
 # matplotlib will open windows during testing unless you do the following
 import matplotlib
 matplotlib.use("AGG") 
+import pylab as pl
 
 import models
 import data
@@ -25,3 +26,5 @@ class TestClass:
     def test_plot_sim_data(self):
         X = data.sim_data(10, [.1, .4, .5], [.1, .1, .1])
         graphics.plot_sim_data(X)
+
+        assert list(pl.axis()) == [0., 1., 0., 1.], 'plot limits should be unit square, (%s found)' % str(pl.axis())
