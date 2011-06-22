@@ -28,3 +28,13 @@ class TestClass:
         graphics.plot_sim_data(X)
 
         assert list(pl.axis()) == [0., 1., 0., 1.], 'plot limits should be unit square, (%s found)' % str(pl.axis())
+
+    def test_bad_model(self):
+        X = data.sim_data(10)
+        Y = models.bad_model(X)
+        assert pl.all(Y.sum(axis=1) == 1), 'should be all ones, (%s found)' % str(Y)
+
+        # test again for 10x3 dataset
+        X = data.sim_data(10, [.1, .4, .5], [.1, .1, .1])
+        Y = models.bad_model(X)
+        assert pl.all(Y.sum(axis=1) == 1), 'should be all ones, (%s found)' % str(Y)
