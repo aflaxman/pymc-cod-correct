@@ -13,21 +13,19 @@ def bad_model(X):
 
 def latent_dirichlet(X):
     N, J = X.shape
+
     pi_ = mc.Dirichlet('pi_', theta=pl.ones(J))
-    pi = mc.CompletedDirichlet('pi', pi_)[0]  # TODO: see about patching PyMC so [0] is unneeded
-    tau = mc.Uniform('tau', lower=0., upper=1.e6, value=pl.ones(J))
-
-    @mc.observed
-    def obs(pi=pi, tau=tau, value=X):
-        logp = 0.
-
-        for i in range(len(pi)):
-            logp += mc.normal_like(X[:,i], pi[i], tau[i])
-        return logp
+    @mc.deterministic
+    def pi(pi_=pi_):
+        pi = pl.zeros(len(pi_)+1)
+        pi[0:len(pi_)] = pi_
+        pi[len(pi_)] = 1. - pi_.sum()
+        return pi
 
     tau = mc.Uniform('tau', lower=0., upper=1.e6, value=X.std(axis=0)**-2)
     @mc.deterministic
     def diag_tau(tau=tau):
         return np.diag(tau)
+
     obs = mc.MvNormal('obs', mu=pi, tau=diag_tau, value=X, observed=True) 
     return vars()
