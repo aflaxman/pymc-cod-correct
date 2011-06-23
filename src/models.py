@@ -8,13 +8,26 @@ import numpy as np
 # model goes here
 def bad_model(X):
     """ Results in a matrix with shape matching X, but all rows sum to 1"""
-    return X / pl.outer(X.sum(axis=1), np.ones((1,np.shape(X)[1])))
+    N, J = X.shape
+    return X / pl.outer(X.sum(axis=1), np.ones(J))
 
 def latent_dirichlet(X):
-    pi_ = mc.Dirichlet('pi_', theta=[1., 1.])
-    pi = mc.CompletedDirichlet('pi', pi_)
-    tau = mc.Uniform('tau', lower=0., upper=1.e6, value=[1., 1.])  # TODO: take initial value based on standard deviation of each column of X
-    obs = [mc.Normal('obs_%d'%i, mu=pi, tau=tau, value=X[i,:], observed=True) for i in range(len(X))]  # TODO: consider if other ways of doing this are faster, and if the problem with the non-list mc.Normal was due to shape of pi.value
-    #tau = mc.Uniform('tau', lower=0., upper=1.e6, value=X.std(axis=0)**-2)
-    #obs = mc.MvNormal('obs', mu=pi, tau=np.diag(tau), value=X, observed=True) 
+    N, J = X.shape
+    pi_ = mc.Dirichlet('pi_', theta=pl.ones(J))
+    pi = mc.CompletedDirichlet('pi', pi_)[0]  # TODO: see about patching PyMC so [0] is unneeded
+    tau = mc.Uniform('tau', lower=0., upper=1.e6, value=pl.ones(J))
+
+    @mc.observed
+    def obs(pi=pi, tau=tau, value=X):
+        logp = 0.
+
+        for i in range(len(pi)):
+            logp += mc.normal_like(X[:,i], pi[i], tau[i])
+        return logp
+
+    tau = mc.Uniform('tau', lower=0., upper=1.e6, value=X.std(axis=0)**-2)
+    @mc.deterministic
+    def diag_tau(tau=tau):
+        return np.diag(tau)
+    obs = mc.MvNormal('obs', mu=pi, tau=diag_tau, value=X, observed=True) 
     return vars()
