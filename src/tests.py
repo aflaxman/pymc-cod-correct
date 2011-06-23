@@ -30,12 +30,12 @@ class TestClass:
     def test_bad_model(self):
         X = data.sim_data(10)
         Y = models.bad_model(X)
-        assert pl.all(Y.sum(axis=1) == 1), 'should be all ones, (%s found)' % str(Y)
+        assert pl.allclose(Y.sum(axis=1), 1), 'should be all ones, (%s found)' % str(Y.sum(axis=1))
 
         # test again for 10x3 dataset
         X = data.sim_data(10, [.1, .4, .5], [.1, .1, .1])
         Y = models.bad_model(X)
-        assert pl.all(Y.sum(axis=1) == 1), 'should be all ones, (%s found)' % str(Y)
+        assert pl.allclose(Y.sum(axis=1), 1), 'should be all ones, (%s found)' % str(Y.sum(axis=1))
 
     def test_good_model(self):
         vars = models.latent_dirichlet(self.X)
