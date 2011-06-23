@@ -24,4 +24,4 @@ def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05]):
         else: 
             X = np.vstack((X,x))
     return X.T
-	
+
