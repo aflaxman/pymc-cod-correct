@@ -27,6 +27,8 @@ class TestClass:
 
         assert list(pl.axis()) == [0., 1., 0., 1.], 'plot limits should be unit square, (%s found)' % str(pl.axis())
 
+        graphics.plot_all_sim_data(X)
+
     def test_bad_model(self):
         X = data.sim_data(10)
         Y = models.bad_model(X)
