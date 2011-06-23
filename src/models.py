@@ -3,7 +3,6 @@
 
 import pylab as pl
 import pymc as mc
-import numpy as np
 
 # model goes here
 def bad_model(X):
@@ -17,15 +16,16 @@ def latent_dirichlet(X):
     pi_ = mc.Dirichlet('pi_', theta=pl.ones(J))
     @mc.deterministic
     def pi(pi_=pi_):
-        pi = pl.zeros(len(pi_)+1)
-        pi[0:len(pi_)] = pi_
-        pi[len(pi_)] = 1. - pi_.sum()
+        J = len(pl.atleast_1d(pi_))+1
+        pi = pl.zeros(J)
+        pi[0:(J-1)] = pi_
+        pi[J-1] = 1. - pi_.sum()
         return pi
 
     tau = mc.Uniform('tau', lower=0., upper=1.e6, value=X.std(axis=0)**-2)
     @mc.deterministic
     def diag_tau(tau=tau):
-        return np.diag(tau)
+        return pl.diag(tau)
 
     obs = mc.MvNormal('obs', mu=pi, tau=diag_tau, value=X, observed=True) 
     return vars()
