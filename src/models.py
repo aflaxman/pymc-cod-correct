@@ -15,4 +15,6 @@ def latent_dirichlet(X):
     pi = mc.CompletedDirichlet('pi', pi_)
     tau = mc.Uniform('tau', lower=0., upper=1.e6, value=[1., 1.])  # TODO: take initial value based on standard deviation of each column of X
     obs = [mc.Normal('obs_%d'%i, mu=pi, tau=tau, value=X[i,:], observed=True) for i in range(len(X))]  # TODO: consider if other ways of doing this are faster, and if the problem with the non-list mc.Normal was due to shape of pi.value
+    #tau = mc.Uniform('tau', lower=0., upper=1.e6, value=X.std(axis=0)**-2)
+    #obs = mc.MvNormal('obs', mu=pi, tau=np.diag(tau), value=X, observed=True) 
     return vars()
