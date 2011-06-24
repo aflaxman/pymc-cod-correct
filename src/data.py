@@ -3,10 +3,11 @@
 
 import pylab as pl
 import pymc as mc
-import numpy as np
+import csv 
+import os
 
 # simple models for some non-uniformly distributed subsets of the plane
-def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05]):
+def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05], sum_to_one=True):
     """ 
     Create an NxJ matrix of simulated data (J is determined by the length 
     of true_csmf). 
@@ -15,8 +16,9 @@ def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05]):
     true_csmf_sd - a list of the standard deviations corresponding to the true csmf's
     """
 
-    assert pl.allclose(sum(true_csmf), 1), 'The sum of elements of true_csmf must equal 1' 
-    assert len(true_csmf)==len(true_csmf_sd), 'The length of true_csmf and true_csmf_sd must be the same'
+    if sum_to_one == True: 
+        assert pl.allclose(sum(true_csmf), 1), 'The sum of elements of true_csmf must equal 1' 
+        assert len(true_csmf)==len(true_csmf_sd), 'The length of true_csmf and true_csmf_sd must be the same'
     J = len(true_csmf)
 
     ## transform the mean and sd to logit space 
@@ -33,4 +35,99 @@ def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05]):
     Y = mc.invlogit(X)
 
     return Y
+
+def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female', keep_year='2010'):
+
+    # Currently this will only select causes at a given level: it needs to also select causes at higher levels that don't have children at the current level
+    # This won't work for "Early Neonatal" and "Post Neonatal" because the way these ages are specified in the file names is different than in the files themselves
+    #    (note: when fixing this, it would also be worthwhile making the function only load the file for the age of interest if there are multiple files for a 
+    #     given cause-sex)
+ 
+    if os.name == 'nt':
+        root = "J:/"
+    else:
+        root = "/home/j/"
+    
+    # get cause list; keep only causes from the specified level; keep only observations that include the specified sex
+    cause_list = pl.csv2rec(root + 'Project/Causes of Death/CoDMod/Models/bigbang/covariate selection/bigbang_inputs.csv')
+    cause_level = pl.array([len(cause_list['cause'][i].split('.')) for i in range(pl.shape(cause_list)[0])])
+    if level == 1: 
+        cause_list = cause_list[(cause_list.cause == 'A')|(cause_list.cause == 'B')|(cause_list.cause == 'C')]
+    else: 
+        cause_list = cause_list[(cause_level==(level-1))&(cause_list.cause != 'A')&(cause_list.cause != 'B')&(cause_list.cause != 'C')]
+    cause_list = cause_list[(cause_list.sex == keep_sex)|(cause_list.sex == 'both')]
+
+    # read in data; only retain data for the country, age, and year specified 
+    count = 0 
+    num = pl.shape(cause_list)[0]
+    d_cause = []
+    d_deaths_mean = []
+    d_deaths_lower = []
+    d_deaths_upper = []
+    d_envelope = []
+    for cause, start_age, end_age in zip(cause_list.cause, cause_list.start_age, cause_list.end_age):
+        count += 1 
+        print str(count) + ' of ' + str(num)
+        if start_age == 'Early Neonatal': start_age = 'Early_Neonatal' 
+        if start_age == 'Post Neonatal': start_age = 'Post_Neonatal' 
+        if end_age == 'Early Neonatal': end_age = 'Early_Neonatal' 
+        if end_age == 'Post Neonatal': end_age = 'Post_Neonatal' 
+        print '  ' + cause + ' - ' + start_age + ' - ' + end_age
+
+        # this is to correct for a temporary (according to Kyle) inconsistency in the cause list and the folder structure. 
+        if level == 1 and cause == 'B': 
+            start_age = 'Post_Neonatal'
+        if level == 2 and cause == 'B02':
+            if start_age == '1': end_age = '14'
+            if start_age == '25': start_age = '15'
+
+        # this is a temporary fix to get around the issue of what model to use. 
+        if (cause == 'A04' or cause == 'A07' or cause == 'B05'): 
+            model = 'bb3' 
+        elif (cause == 'A12'):
+            model = 'Archives/bb'
+        else: 
+            model = 'bb'
+ 
+        csvdata = csv.reader(open(root + 'Project/Causes of Death/CoDMod/Models/' + cause + '/' + model + '_' + keep_sex + '_' + start_age + '_to_' + end_age + '/Results/deaths_country.csv'), delimiter=",", quotechar='"')
+        names = pl.array(csvdata.next())
+        for row in csvdata:
+            row = pl.array(row)
+            if row[(names=='age')] == keep_age and row[(names=='year')] == keep_year and row[(names=='iso3')] == keep_iso3: 
+                d_cause.append(row[(names=='cause')]) # it would be more efficient to extract the row numbers outside the loop... 
+                d_deaths_mean.append(row[(names=='final_deaths_mean')])
+                d_deaths_lower.append(row[(names=='final_deaths_lower')])
+                d_deaths_upper.append(row[(names=='final_deaths_upper')])
+                d_envelope.append(row[(names=='envelope')])
+
+        cf_mean = pl.array(d_deaths_mean, dtype='f') / pl.array(d_envelope, dtype = 'f')
+        cf_lower = pl.array(d_deaths_lower, dtype='f') / pl.array(d_envelope, dtype = 'f')
+        cf_upper = pl.array(d_deaths_upper, dtype='f') / pl.array(d_envelope, dtype = 'f')
+        # AHHHHHHHHHHHHHHHH. Now d_cause is ridiculous looking. Stupid arrays. Must figure out how to extract the row numbers. 
+
+    return d_cause, cf_mean, cf_lower, cf_upper
+
+def sim_cod_data(N, cf_mean, cf_lower, cf_upper): 
+    # approximate standard deviation 
+    std = (cf_upper - cf_lower)/(2*1.96)
+    X = sim_data(N, cf_mean, std, False)
+    return(X)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
