@@ -91,19 +91,26 @@ def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female
  
         csvdata = csv.reader(open(root + 'Project/Causes of Death/CoDMod/Models/' + cause + '/' + model + '_' + keep_sex + '_' + start_age + '_to_' + end_age + '/Results/deaths_country.csv'), delimiter=",", quotechar='"')
         names = pl.array(csvdata.next())
+        iso3_row = pl.where(names == 'iso3')[0][0] ## WHYYYYYY
+        age_row = pl.where(names == 'age')[0][0] 
+        year_row = pl.where(names == 'year')[0][0]
+        cause_row = pl.where(names == 'cause')[0][0] 
+        mean_row = pl.where(names == 'final_deaths_mean')[0][0] 
+        lower_row = pl.where(names == 'final_deaths_lower')[0][0]
+        upper_row = pl.where(names == 'final_deaths_upper')[0][0] 
+        envelope_row = pl.where(names == 'envelope')[0][0]
+
         for row in csvdata:
-            row = pl.array(row)
-            if row[(names=='age')] == keep_age and row[(names=='year')] == keep_year and row[(names=='iso3')] == keep_iso3: 
-                d_cause.append(row[(names=='cause')]) # it would be more efficient to extract the row numbers outside the loop... 
-                d_deaths_mean.append(row[(names=='final_deaths_mean')])
-                d_deaths_lower.append(row[(names=='final_deaths_lower')])
-                d_deaths_upper.append(row[(names=='final_deaths_upper')])
-                d_envelope.append(row[(names=='envelope')])
+            if row[iso3_row] == keep_iso3 and row[age_row] == keep_age and row[year_row] == keep_year: 
+                d_cause.append(row[cause_row])
+                d_deaths_mean.append(row[mean_row])
+                d_deaths_lower.append(row[lower_row])
+                d_deaths_upper.append(row[upper_row])
+                d_envelope.append(row[envelope_row])
 
         cf_mean = pl.array(d_deaths_mean, dtype='f') / pl.array(d_envelope, dtype = 'f')
         cf_lower = pl.array(d_deaths_lower, dtype='f') / pl.array(d_envelope, dtype = 'f')
         cf_upper = pl.array(d_deaths_upper, dtype='f') / pl.array(d_envelope, dtype = 'f')
-        # AHHHHHHHHHHHHHHHH. Now d_cause is ridiculous looking. Stupid arrays. Must figure out how to extract the row numbers. 
 
     return d_cause, cf_mean, cf_lower, cf_upper
 
