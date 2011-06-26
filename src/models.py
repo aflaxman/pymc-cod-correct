@@ -27,5 +27,8 @@ def latent_dirichlet(X):
     def diag_tau(tau=tau):
         return pl.diag(tau)
 
-    obs = mc.MvNormal('obs', mu=pi, tau=diag_tau, value=X, observed=True) 
+    @mc.potential
+    def obs(pi=pi, tau=tau, X=X):
+        i = pl.floor(pl.rand()*len(X))
+        return mc.normal_like(X[i,:], pi, tau)
     return vars()

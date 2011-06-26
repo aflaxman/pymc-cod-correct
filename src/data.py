@@ -37,7 +37,12 @@ def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05], sum_to_one=True):
     return Y
 
 def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female', keep_year='2010'):
-
+    """ Get data from CoDMod output on J drive
+    
+    Results
+    -------
+    lists of causes, mean estimates, lower bound estimates, upper bound estimates
+    """
     # Currently this will only select causes at a given level: it needs to also select causes at higher levels that don't have children at the current level
     # This won't work for "Early Neonatal" and "Post Neonatal" because the way these ages are specified in the file names is different than in the files themselves
     #    (note: when fixing this, it would also be worthwhile making the function only load the file for the age of interest if there are multiple files for a 
@@ -82,7 +87,7 @@ def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female
             if start_age == '25': start_age = '15'
 
         # this is a temporary fix to get around the issue of what model to use. 
-        if (cause == 'A04' or cause == 'A07' or cause == 'B05'): 
+        if (cause == 'A04' or cause == 'A07' or cause == 'B02' or cause == 'B05'): 
             model = 'bb3' 
         elif (cause == 'A12'):
             model = 'Archives/bb'

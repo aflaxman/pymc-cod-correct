@@ -19,17 +19,17 @@ def plot_sim_data(X, i=0, j=1):
 
 
 # lattice style plot of simulated data
-def plot_all_sim_data(X): 
+def plot_all_sim_data(X, color='b'): 
     if np.concatenate(X).max() > 1 or np.concatenate(X).min() < 0: 
         print 'Warning: data outside [0,1] is not shown'
-    pl.clf()
+    #pl.clf()
     J = np.shape(X)[1]
     for i in range(J): 
         for j in range(i+1,J):
             # plot for upper triangle
             p = (J-1)*i+j
             pl.subplot(J-1,J-1,p)
-            pl.plot(X[:,j], X[:,i], 'g.')
+            pl.plot(X[:,j], X[:,i], linestyle='None', marker='.', color=color)
             pl.axis([0,1,0,1])
             if J == 2: 
                 pl.plot([1,0],[0,1])
