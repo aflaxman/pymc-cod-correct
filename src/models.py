@@ -22,7 +22,7 @@ def latent_dirichlet(X):
         pi[J-1] = 1. - pi_.sum()
         return pi
 
-    tau = mc.Uniform('tau', lower=0., upper=1.e6, value=X.std(axis=0)**-2)
+    tau = mc.Uniform('tau', lower=0., upper=1.e20, value=X.std(axis=0)**-2)
     @mc.deterministic
     def diag_tau(tau=tau):
         return pl.diag(tau)
