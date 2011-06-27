@@ -23,12 +23,12 @@ def latent_dirichlet(X):
         return pi
 
     tau = mc.Uniform('tau', lower=0., upper=1.e20, value=X.std(axis=0)**-2)
-    @mc.deterministic
-    def diag_tau(tau=tau):
-        return pl.diag(tau)
 
     @mc.potential
     def obs(pi=pi, tau=tau, X=X):
-        i = pl.floor(pl.rand()*len(X))
-        return mc.normal_like(X[i,:], pi, tau)
+        N = len(X)
+        logp_i = pl.array([mc.normal_like(X[i,:], pi, tau) for i in range(N)])
+        #return log(sum(exp(logp_i - log(N)))) # better to use flib.logsum
+        return mc.flib.logsum(logp_i - pl.log(N))
+                       
     return vars()

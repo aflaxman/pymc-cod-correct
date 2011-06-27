@@ -39,10 +39,14 @@ def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female
     """ Get data from CoDMod output on J drive
     Input 
     -----
-    level - level of causes to obtain data for (level 1 = A, B, C; each successive level contains more subdivisions) 
-    keep_age - the beginning of the age group to obtain data for (0, 0.01, 0.1, 1, 5, 10, ..., 80) 
-    keep_sex - male or female 
-    keep_year - (1980, 2010) 
+    level : int, between 1 and ?
+      level of causes to obtain data for (level 1 = A, B, C; each successive level contains more subdivisions) 
+    keep_age : string
+      the beginning of the age group to obtain data for (0, 0.01, 0.1, 1, 5, 10, ..., 80) 
+    keep_sex : string
+      male or female 
+    keep_year : string
+      in the range (1980, 2010) 
     
     Results
     -------
@@ -114,13 +118,14 @@ def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female
                 d_deaths_lower.append(row[lower_row])
                 d_deaths_upper.append(row[upper_row])
                 d_envelope.append(row[envelope_row])
-
     d_cause = pl.array(d_cause)
     cf_mean = pl.array(d_deaths_mean, dtype='f') / pl.array(d_envelope, dtype = 'f')
     cf_lower = pl.array(d_deaths_lower, dtype='f') / pl.array(d_envelope, dtype = 'f')
     cf_upper = pl.array(d_deaths_upper, dtype='f') / pl.array(d_envelope, dtype = 'f')
 
-    return d_cause, cf_mean, cf_lower, cf_upper
+    cf_rec = pl.np.core.records.fromarrays([d_cause,cf_mean, cf_lower, cf_upper], names='cause,est,lower,upper')
+
+    return cf_rec
 
 def sim_cod_data(N, cf_mean, cf_lower, cf_upper): 
     """ 
@@ -140,10 +145,10 @@ def sim_cod_data(N, cf_mean, cf_lower, cf_upper):
 
     # draw from distribution 
     J = len(cf_mean)
-    X = mc.rnormal(mu=cf_mean, tau=pl.array(std)**-2, size=(N,J))  
+    X = mc.rnormal(mu=cf_mean, tau=std**-2, size=N)  # size is N instead of (N,J) because omak has an old version of PyMC
 
     ## back transform the simulated values
-    Y = mc.invlogit(X)
+    Y = mc.invlogit(X).reshape(N,J)  # reshape because omak has an old version of PyMC
     return Y
 
 
