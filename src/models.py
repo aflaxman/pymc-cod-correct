@@ -8,7 +8,7 @@ import pymc as mc
 def bad_model(X):
     """ Results in a matrix with shape matching X, but all rows sum to 1"""
     N, J = X.shape
-    return X / pl.outer(X.sum(axis=1), np.ones(J))
+    return X / pl.outer(X.sum(axis=1), pl.ones(J))
 
 def latent_dirichlet(X):
     N, J = X.shape
