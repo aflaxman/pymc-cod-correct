@@ -55,6 +55,10 @@
 %\usepackage[latin1]{inputenc} %UNIX support if unicode package fails
 \urlstyle{rm}
  
+
+\usepackage{amsmath}
+\newcommand{\Dirichlet}{\operatorname{Dirichlet}}
+\newcommand{\Uniform}{\operatorname{Uniform}}
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
 %%                                             %%
@@ -271,8 +275,15 @@
 %% including a power calculation if appropriate.
 
 \section*{Methods}
-  \subsection*{Methods sub-heading for this section}
-    Text for this sub-section \ldots
+  \subsection*{Statistical Model}
+
+  \begin{align*}
+    \Pr[Y | \pi, \tau] &= \sum_{i=1}^N \frac{1}{N} \Pr[Y_i | \pi, \tau]\\
+    Y_i | \pi, \tau &\sim N(\pi, \tau)\\
+    \pi &\sim \Dirichlet(1) \\
+    \tau &\sim \Uniform[0, \infty) \\
+  \end{align*}
+
 
   \subsection*{Another methods sub-heading for this section}
     Text for this sub-section \ldots
