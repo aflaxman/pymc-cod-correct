@@ -38,15 +38,18 @@ def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05], sum_to_one=True):
 
 def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female', keep_year='2010'):
     """ Get data from CoDMod output on J drive
+    Input 
+    -----
+    level - level of causes to obtain data for (level 1 = A, B, C; each successive level contains more subdivisions) 
+    keep_age - the beginning of the age group to obtain data for (0, 0.01, 0.1, 1, 5, 10, ..., 80) 
+    keep_sex - male or female 
+    keep_year - (1980, 2010) 
     
     Results
     -------
     lists of causes, mean estimates, lower bound estimates, upper bound estimates
     """
     # Currently this will only select causes at a given level: it needs to also select causes at higher levels that don't have children at the current level
-    # This won't work for "Early Neonatal" and "Post Neonatal" because the way these ages are specified in the file names is different than in the files themselves
-    #    (note: when fixing this, it would also be worthwhile making the function only load the file for the age of interest if there are multiple files for a 
-    #     given cause-sex)
  
     if os.name == 'nt':
         root = "J:/"
@@ -78,7 +81,7 @@ def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female
         if end_age == 'Early Neonatal': end_age = 'Early_Neonatal' 
         if end_age == 'Post Neonatal': end_age = 'Post_Neonatal' 
         print '  ' + cause + ' - ' + start_age + ' - ' + end_age
-
+        
         # this is to correct for a temporary (according to Kyle) inconsistency in the cause list and the folder structure. 
         if level == 1 and cause == 'B': 
             start_age = 'Post_Neonatal'
@@ -113,9 +116,10 @@ def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female
                 d_deaths_upper.append(row[upper_row])
                 d_envelope.append(row[envelope_row])
 
-        cf_mean = pl.array(d_deaths_mean, dtype='f') / pl.array(d_envelope, dtype = 'f')
-        cf_lower = pl.array(d_deaths_lower, dtype='f') / pl.array(d_envelope, dtype = 'f')
-        cf_upper = pl.array(d_deaths_upper, dtype='f') / pl.array(d_envelope, dtype = 'f')
+    d_cause = pl.array(d_cause)
+    cf_mean = pl.array(d_deaths_mean, dtype='f') / pl.array(d_envelope, dtype = 'f')
+    cf_lower = pl.array(d_deaths_lower, dtype='f') / pl.array(d_envelope, dtype = 'f')
+    cf_upper = pl.array(d_deaths_upper, dtype='f') / pl.array(d_envelope, dtype = 'f')
 
     return d_cause, cf_mean, cf_lower, cf_upper
 
