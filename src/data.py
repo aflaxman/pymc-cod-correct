@@ -127,29 +127,35 @@ def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female
 
     return cf_rec
 
-def sim_cod_data(N, cf_mean, cf_lower, cf_upper): 
+def sim_cod_data(N, cf_rec): 
     """ 
     Create an NxJ matrix of simulated data (J is the number of causes and is determined
     by the length of cf_mean). 
-    
-    N - the number of simulations
-    cf_mean - the mean cause fraction for each cause
-    cf_lower, cf_upper - the upper and lower bounds for the cause fractions for each cause 
+
+    N - the number of simulations    
+    cf_rec - a recarray containing: 
+        cause - a list of causes 
+        est - the estimates of the cause fractions
+        lower - the lower bound of the cause fractions
+        upper - the upper bound of the cause fractions 
     """
 
     # logit the mean and bounds and approximate the standard deviation in logit space
-    cf_mean = mc.logit(cf_mean)
-    cf_lower = mc.logit(cf_lower)
-    cf_upper = mc.logit(cf_upper)
+    cf_mean = mc.logit(cf_rec.est)
+    cf_lower = mc.logit(cf_rec.lower)
+    cf_upper = mc.logit(cf_rec.upper)
     std = (cf_upper - cf_lower)/(2*1.96)
 
-    # draw from distribution 
+    # draw from distribution and back transform the simulated values
     J = len(cf_mean)
-    X = mc.rnormal(mu=cf_mean, tau=std**-2, size=N)  # size is N instead of (N,J) because omak has an old version of PyMC
-
-    ## back transform the simulated values
-    Y = mc.invlogit(X).reshape(N,J)  # reshape because omak has an old version of PyMC
-    return Y
+    if mc.__version__ == '2.0rc2': # version on Omak 
+        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=N)  
+        Y = mc.invlogit(X).reshape(N,J) 
+    else: 
+        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=(N,J))
+        Y = mc.invlogit(X)
+     
+    return pl.np.core.records.fromarrays(Y.T) # TODO: figure out how to assign the causes as names
 
 
 
