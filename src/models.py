@@ -33,3 +33,11 @@ def latent_dirichlet(X):
         return mc.flib.logsum(logp_i - pl.log(N))
                        
     return vars()
+
+def fit_latent_dirichlet(X, iter=1000, burn=500, thin=5): 
+    vars = latent_dirichlet(X)
+    m = mc.MCMC(vars) #, db='txt', dbname=dir + '/latent_dirichlet')
+    m.sample(iter, burn, thin, verbose=1)
+    pi = m.pi.trace()
+    return pi.view(pl.recarray)
+    

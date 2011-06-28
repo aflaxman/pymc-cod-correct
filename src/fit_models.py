@@ -18,27 +18,18 @@ for iso in isos:
     for sex in sexes: 
         for age in ages: 
             for year in years: 
+            
                 year = str(year)
-                dir = 'C:/Users/ladwyer/pymc-cod-correct/data/' + iso + '_' + sex + '_' + age + '_' + year 
-                dir = 'C:/Users/ladwyer/pymc-cod-correct/data/%s_%s_%s_%s' % (iso, sex, age, year) # cooler approach, for if you need to change things in the future
+                dir = 'C:/Users/ladwyer/pymc-cod-correct/data/%s_%s_%s_%s' % (iso, sex, age, year) 
                 os.mkdir(dir)
-                #causes, mean, lower, upper = data.get_cod_data(level=1, keep_age = age, keep_iso3 = iso, keep_sex = sex, keep_year= year)
+                
                 cf = data.get_cod_data(level=1, keep_age = age, keep_iso3 = iso, keep_sex = sex, keep_year= year)
-                X = data.sim_cod_data(1000, cf.est, cf.lower, cf.upper)  # TODO: make data.sim_cod_data return a recarray
-                pl.rec2csv(pl.core.records.fromarrays(X, names=''),
-                           dir + '/cod_sims.csv')
+                X = data.sim_cod_data(1000, cf)
+                pl.rec2csv(pl.np.core.records.fromarrays(X.T), '../data/sim_cod_data_%s.csv' % (iso))
+                
+                bad_model = models.bad_model(X) 
+                pl.rec2csv(pl.np.core.records.fromarrays(bad_model.T), '../data/bad_model_%s.csv' % (iso))
 
-                bad_model = models.bad_model(X) # TODO: make this also return a recarray, also rename it
-                file = open(dir + '/bad_model.txt', 'w')
-                write= csv.writer(file, delimiter=';')
-                [write.writerow(bad_model[i,]) for i in range(pl.shape(bad_model)[0])]
-                file.close()
-                #bad_model_cf = [bad_model.mean(axis=0), pl.array(sp.mquantiles(bad_model, axis=0, prob=0.025))[0], pl.array(sp.mquantiles(bad_model, axis=0, prob=0.975))[0]]
-
-                # TODO: refactor this into code that returns a recarray a la models.bad_model.
-                vars = models.latent_dirichlet(X)
-                m = mc.MCMC(vars, db='txt', dbname=dir + '/latent_dirichlet')
-                m.sample(1000000, 500000, 500, verbose=0)
-                #latent_dirichlet_cf = [m.pi.trace().mean(0), pl.array(sp.mquantiles(m.pi.trace(), axis=0, prob=0.025))[0], pl.array(sp.mquantiles(m.pi.trace(), axis=0, prob=0.975))[0]]
-
+                latent_dirichlet = models.fit_latent_dirichlet(X, 1000, 500, 5)
+                pl.rec2csv(pl.np.core.records.fromarrays(latent_dirichlet.T), '../data/latent_dirichlet_%s.csv' % (iso))
 
