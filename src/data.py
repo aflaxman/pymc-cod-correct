@@ -155,7 +155,7 @@ def sim_cod_data(N, cf_rec):
         X = mc.rnormal(mu=cf_mean, tau=std**-2, size=(N,J))
         Y = mc.invlogit(X)
      
-    return pl.np.core.records.fromarrays(Y.T) # TODO: figure out how to assign the causes as names
+    return Y.view(pl.recarray)
 
 
 
