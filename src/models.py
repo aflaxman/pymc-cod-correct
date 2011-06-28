@@ -29,8 +29,13 @@ def latent_dirichlet(X):
     def obs(pi=pi, tau=tau, X=X):
         N = len(X)
         logp_i = pl.array([mc.normal_like(X[i,:], pi, tau) for i in range(N)])
-        #return log(sum(exp(logp_i - log(N)))) # better to use flib.logsum
         return mc.flib.logsum(logp_i - pl.log(N))
+        
+    #@mc.stochastic(observed=True)
+    #def X(pi=pi, tau=tau, value=X):
+    #    N = len(X)
+    #    logp_i = pl.array([mc.normal_like(X[i,:], pi, tau) for i in range(N)])
+    #    return mc.flib.logsum(logp_i - pl.log(N))        
                        
     return vars()
 
@@ -40,4 +45,4 @@ def fit_latent_dirichlet(X, iter=1000, burn=500, thin=5):
     m.sample(iter, burn, thin, verbose=1)
     pi = m.pi.trace()
     return pi.view(pl.recarray)
-    
+
