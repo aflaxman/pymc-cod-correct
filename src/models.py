@@ -26,12 +26,6 @@ def latent_dirichlet(X):
     alpha = mc.Exponential('alpha', beta=1., value=1./X.mean())
 
     tau = mc.Uniform('tau', lower=1.**-2, upper=.01**-2, value=(pl.ones(J)*.1)**-2)
-
-    #@mc.potential
-    #def obs(pi=pi, tau=tau, X=X):
-    #    N = len(X)
-    #    logp_i = pl.array([mc.normal_like(X[i,:], pi, tau) for i in range(N)])
-    #    return mc.flib.logsum(logp_i - pl.log(N))
         
     @mc.observed
     def X_obs(pi=pi, tau=tau, alpha=alpha, value=X):
@@ -43,8 +37,12 @@ def latent_dirichlet(X):
 
 def fit_latent_dirichlet(X, iter=1000, burn=500, thin=5): 
     vars = latent_dirichlet(X)
+    m = mc.MAP([vars['pi_'], vars['X_obs']])
+    m.fit(verbose=1)
+    
     m = mc.MCMC(vars) #, db='txt', dbname=dir + '/latent_dirichlet')
+    print m.pi.value
     m.sample(iter, burn, thin, verbose=1)
     pi = m.pi.trace()
-    return pi.view(pl.recarray)
+    return m, pi.view(pl.recarray)
 
