@@ -62,3 +62,8 @@ class TestClass:
         assert pl.sum(vars['pi'].value) <= 1.0, 'pi value should sum to at most 1, (%s found)' % sum(vars['pi'].value)
         m = mc.MCMC(vars)
         m.sample(10)
+
+if __name__ == '__main__':
+    import nose
+    nose.run()
+    
