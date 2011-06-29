@@ -13,7 +13,7 @@ def array2csv(Y, fname):
     
     pl.rec2csv(pl.np.core.records.fromarrays(Y.T), fname)
 
-def normal_draw(cf_mean, std, N, J):
+def logit_normal_draw(cf_mean, std, N, J):
     std = pl.array(std)
     if mc.__version__ == '2.0rc2': # version on Omak 
         X = mc.rnormal(mu=cf_mean, tau=std**-2, size=N)  
@@ -44,7 +44,7 @@ def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05], sum_to_one=True):
         transformed_sd.append( ((1/(pi_i*(pi_i-1)))**2 * sigma_pi_i**2)**0.5 )
         
     ## draw from distribution
-    return normal_draw(transformed_csmf, transformed_sd, N, J)
+    return logit_normal_draw(transformed_csmf, transformed_sd, N, J)
 
 def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female', keep_year='2010'):
     """ Get data from CoDMod output on J drive
@@ -159,7 +159,7 @@ def sim_cod_data(N, cf_rec):
 
     # draw from distribution and back transform the simulated values
     J = len(cf_mean)
-    return normal_draw(cf_mean, std, N, J)
+    return logit_normal_draw(cf_mean, std, N, J)
 
 def sim_data_for_validation(N, true_csmf=[0.1, 0.3, 0.6], std=[0.05, 0.05, 0.05]):
     """
