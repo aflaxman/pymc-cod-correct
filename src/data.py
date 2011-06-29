@@ -161,7 +161,7 @@ def sim_cod_data(N, cf_rec):
     J = len(cf_mean)
     return logit_normal_draw(cf_mean, std, N, J)
 
-def sim_data_for_validation(N, true_csmf=[0.1, 0.3, 0.6], std=[0.05, 0.05, 0.05]):
+def sim_data_for_validation(N, true_csmf=[0.1, 0.3, 0.6], true_std=[0.05, 0.05, 0.05]):
     """
     Input
     -----
@@ -177,11 +177,14 @@ def sim_data_for_validation(N, true_csmf=[0.1, 0.3, 0.6], std=[0.05, 0.05, 0.05]
     """
 
     assert pl.allclose(sum(true_csmf), 1), 'The sum of elements of true_csmf must equal 1' 
-    assert len(true_csmf)==len(std), 'The length of true_csmf and true_csmf_sd must be the same'
-   
-    J = len(true_csmf)
-    est_csmf = sim_data(1, true_csmf, std)[0] 
-    sims = sim_data(N, est_csmf, std, sum_to_one=False)
+    assert len(true_csmf)==len(true_std), 'The length of true_csmf and true_csmf_sd must be the same'
+
+    est_csmf = sim_data(1, true_csmf, true_std)[0]
+    est_error = est_csmf - true_csmf
+
+    est_std = true_std # TODO: consider less correlated relationship
+    
+    sims = sim_data(N, est_csmf, est_std, sum_to_one=False)
     return sims
     
 
