@@ -22,16 +22,16 @@ class TestClass:
         assert sim_data.shape == (10,3), 'Should be 10x3 matrix of data (%s found)' % str(sim_data.shape)
         
     def test_get_cod_data(self): 
-        c, m, l, u = data.get_cod_data(level=1)
-        assert len(c) == 3 and c.dtype == 'S1'
-        assert len(m) == 3 and m.dtype == 'float32'
-        assert len(l) == 3 and l.dtype == 'float32'
-        assert len(u) == 3 and u.dtype == 'float32' 
+        cf = data.get_cod_data(level=1)
+        assert len(cf.cause) == 3 and cf.cause.dtype == 'S1'
+        assert len(cf.est) == 3 and cf.est.dtype == 'float32'
+        assert len(cf.lower) == 3 and cf.lower.dtype == 'float32'
+        assert len(cf.upper) == 3 and cf.upper.dtype == 'float32' 
         # this only tests that level 1 causes work; the function takes awhile to run at higher levels, so it may not be feasible to repeatedly test this at higher levels. 
 
     def test_sim_cod_data(self): 
-        c, m, l, u = data.get_cod_data(level=1)
-        X = data.sim_cod_data(10, m, l, u)
+        cf = data.get_cod_data(level=1)
+        X = data.sim_cod_data(10, cf)
         assert pl.shape(X) == (10, 3)
        
     def test_plot_sim_data(self):

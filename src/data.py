@@ -6,7 +6,13 @@ import pymc as mc
 import csv 
 import os
 
-# simple models for some non-uniformly distributed subsets of the plane
+def array2csv(Y, fname):
+    """
+    write a 2-dimensional recarray to a csv file
+    """
+    
+    pl.rec2csv(pl.np.core.records.fromarrays(Y.T), fname)
+
 def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05], sum_to_one=True):
     """ 
     Create an NxJ matrix of simulated data (J is determined by the length 
