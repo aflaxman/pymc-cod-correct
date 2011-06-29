@@ -28,11 +28,17 @@ def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05], sum_to_one=True):
         # TODO: verify that this actually the appropriate equation; the standard deviation of the data returned doesn't match what is being provided in the arguments
         transformed_var.append( (1/(pi_i*(1-pi_i)))**2 * sigma_pi_i**2 )
 
-    ## draw from distribution 
-    X = mc.rnormal(mu=transformed_csmf, tau=pl.array(transformed_var)**-1, size=(N,J))
+    ## draw from distribution
+    return my_draw(true_csmf, true_csmf_sd, N, J)
 
-    ## back transform the simulated values
-    Y = mc.invlogit(X)
+def my_draw(cf_mean, std, N, J):
+    std = pl.array(std)
+    if mc.__version__ == '2.0rc2': # version on Omak 
+        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=N)  
+        Y = mc.invlogit(X).reshape(N,J) 
+    else: 
+        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=(N,J))
+        Y = mc.invlogit(X)
     return Y
 
 def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female', keep_year='2010'):
@@ -148,14 +154,7 @@ def sim_cod_data(N, cf_rec):
 
     # draw from distribution and back transform the simulated values
     J = len(cf_mean)
-    if mc.__version__ == '2.0rc2': # version on Omak 
-        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=N)  
-        Y = mc.invlogit(X).reshape(N,J) 
-    else: 
-        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=(N,J))
-        Y = mc.invlogit(X)
-     
-    return Y.view(pl.recarray)
+    return my_draw(cf_mean, std, N, J)
 
 
 
