@@ -13,6 +13,16 @@ def array2csv(Y, fname):
     
     pl.rec2csv(pl.np.core.records.fromarrays(Y.T), fname)
 
+def normal_draw(cf_mean, std, N, J):
+    std = pl.array(std)
+    if mc.__version__ == '2.0rc2': # version on Omak 
+        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=N)  
+        Y = mc.invlogit(X).reshape(N,J) 
+    else: 
+        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=(N,J))
+        Y = mc.invlogit(X)
+    return Y
+
 def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05], sum_to_one=True):
     """ 
     Create an NxJ matrix of simulated data (J is determined by the length 
@@ -29,23 +39,12 @@ def sim_data(N, true_csmf=[.3, .7], true_csmf_sd=[.2, .05], sum_to_one=True):
 
     ## transform the mean and sd to logit space 
     transformed_csmf = mc.logit(true_csmf)
-    transformed_var = []
+    transformed_sd = []
     for pi_i, sigma_pi_i in zip(true_csmf, true_csmf_sd):
-        # TODO: verify that this actually the appropriate equation; the standard deviation of the data returned doesn't match what is being provided in the arguments
-        transformed_var.append( (1/(pi_i*(1-pi_i)))**2 * sigma_pi_i**2 )
-
+        transformed_sd.append( ((1/(pi_i*(pi_i-1)))**2 * sigma_pi_i**2)**0.5 )
+        
     ## draw from distribution
-    return my_draw(true_csmf, true_csmf_sd, N, J)
-
-def my_draw(cf_mean, std, N, J):
-    std = pl.array(std)
-    if mc.__version__ == '2.0rc2': # version on Omak 
-        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=N)  
-        Y = mc.invlogit(X).reshape(N,J) 
-    else: 
-        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=(N,J))
-        Y = mc.invlogit(X)
-    return Y
+    return normal_draw(transformed_csmf, transformed_sd, N, J)
 
 def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female', keep_year='2010'):
     """ Get data from CoDMod output on J drive
@@ -160,23 +159,30 @@ def sim_cod_data(N, cf_rec):
 
     # draw from distribution and back transform the simulated values
     J = len(cf_mean)
-    return my_draw(cf_mean, std, N, J)
+    return normal_draw(cf_mean, std, N, J)
 
+def sim_data_for_validation(N, true_csmf=[0.1, 0.3, 0.6], std=[0.05, 0.05, 0.05]):
+    """
+    Input
+    -----
+    true_csmf - the true cause fractions
+    std - the standard deviation associated with the cause fractions: this is meant to 
+        capture how variable estimates of the true cause fraction will be (i.e. causes 
+        that are more difficult to estimate will be more variable and therefore will 
+        have greater uncertainty)
+    
+    Output
+    -----
+    N draws from an 'estimated' distribution for the specified causes 
+    """
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    assert pl.allclose(sum(true_csmf), 1), 'The sum of elements of true_csmf must equal 1' 
+    assert len(true_csmf)==len(std), 'The length of true_csmf and true_csmf_sd must be the same'
+   
+    J = len(true_csmf)
+    est_csmf = sim_data(1, true_csmf, std)[0] 
+    sims = sim_data(N, est_csmf, std, sum_to_one=False)
+    return sims
+    
 
 

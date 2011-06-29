@@ -33,7 +33,14 @@ class TestClass:
         cf = data.get_cod_data(level=1)
         X = data.sim_cod_data(10, cf)
         assert pl.shape(X) == (10, 3)
-       
+
+    def test_sim_data_for_validation(self): 
+        sim_data = data.sim_data_for_validation(10, [0.5, 0.5], [0.1, 0.1])
+        assert sim_data.shape == (10,2), 'Should be 10x2 matrix of data (%s found)' % str(sim_data.shape)
+
+        sim_data = data.sim_data_for_validation(10, [.1, .4, .5], [.1, .1, .1])
+        assert sim_data.shape == (10,3), 'Should be 10x3 matrix of data (%s found)' % str(sim_data.shape)
+        
     def test_plot_sim_data(self):
         X = data.sim_data(10, [.1, .4, .5], [.1, .1, .1])
         graphics.plot_sim_data(X)
