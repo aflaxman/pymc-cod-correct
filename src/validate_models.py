@@ -36,7 +36,7 @@ def validate_once(true_cf = pl.ones(3)/3.0, true_std = 0.01*pl.ones(3)):
     
     # fit latent dirichlet model, calculate 95% HPD region and fit metrics 
     m, latent_dirichlet = models.fit_latent_dirichlet(X) # TODO: Need to find the appropriate settings here
-    latent_dirichlet_metrics = calc_quality_metrics(bad_model.mean(0), true_cf)
+    latent_dirichlet_metrics = calc_quality_metrics(latent_dirichlet.mean(0), true_cf)
     latent_dirichlet_hpd = mc.utils.hpd(X, 0.05)
 
     return bad_model_metrics, latent_dirichlet_metrics, bad_model_hpd, latent_dirichlet_hpd 
