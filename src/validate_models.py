@@ -32,7 +32,7 @@ def calc_quality_metrics(true_cf, preds):
     all = pl.np.core.records.fromarrays([abs_err, rel_err, pl.ones(len(pred_cf))*csmf_accuracy, coverage], names=['abs_err','rel_err','csmf_accuracy','coverage'])
     return all
 
-def validate_once(true_cf = pl.ones(3)/3.0, true_std = 0.01*pl.ones(3)):
+def validate_once(true_cf = pl.ones(3)/3.0, true_std = 0.01*pl.ones(3), save=False, dir='', i=0):
     """
     Generate a set of simulated estimates for the provided true cause fractions; Fit the bad model and 
         the latent dirichlet model to this data and calculate quality metrics. 
@@ -49,7 +49,12 @@ def validate_once(true_cf = pl.ones(3)/3.0, true_std = 0.01*pl.ones(3)):
     m, latent_dirichlet = models.fit_latent_dirichlet(X) # TODO: Need to find the appropriate settings here
     latent_dirichlet_metrics = calc_quality_metrics(true_cf, latent_dirichlet)
 
-    return bad_model_metrics, latent_dirichlet_metrics
+    # either write results to disk or return them 
+    if save: 
+        pl.rec2csv(bad_model_metrics, '%s/metrics_bad_model_%i.csv' % (dir, i)) 
+        pl.rec2csv(latent_dirichlet_metrics, '%s/metrics_latent_dirichlet_%i.csv' % (dir, i))
+    else: 
+        return bad_model_metrics, latent_dirichlet_metrics
 
 def combine_output(cause_count, model, dir, reps):
     """
@@ -77,17 +82,14 @@ def clean_up(model, dir, reps):
     for i in range(reps):
         os.remove('%s/metrics_%s_%i.csv' % (dir, model, i))
 
-
 def run_all_sequentially(dir, true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.01], reps=5): 
     """
     """
     
     # repeatedly run validate_once and save output 
     for i in range(reps): 
-        bad_model_metrics, latent_dirichlet_metrics = validate_once(true_cf, true_std)
-        pl.rec2csv(bad_model_metrics, '%s/metrics_bad_model_%i.csv' % (dir, i)) 
-        pl.rec2csv(latent_dirichlet_metrics, '%s/metrics_latent_dirichlet_%i.csv' % (dir, i))
-    
+        validate_once(true_cf, true_std, True, dir, i)
+
     # combine all output across repetitions 
     b_abs_err, b_rel_err, b_csmf_accuracy, b_coverage = combine_output(len(true_cf), 'bad_model', dir, reps)
     l_abs_err, l_rel_err, l_csmf_accuracy, l_coverage = combine_output(len(true_cf), 'latent_dirichlet', dir, reps)    
