@@ -1,5 +1,6 @@
 import pymc as mc 
 import pylab as pl 
+import os
 
 import data
 import graphics
@@ -9,6 +10,7 @@ reload(models)
 def calc_coverage(true_cf, preds):
     """
     """
+    
     J = len(true_cf)
     hpd = mc.utils.hpd(preds, 0.05)
     covered = [hpd[cause][0] < true_cf[cause] < hpd[cause][1] for cause in range(J)]
@@ -49,13 +51,13 @@ def validate_once(true_cf = pl.ones(3)/3.0, true_std = 0.01*pl.ones(3)):
 
     return bad_model_metrics, latent_dirichlet_metrics
 
-def combine_output(model, dir, reps):
+def combine_output(cause_count, model, dir, reps):
     """
     """
 
-    abs_err = pl.zeros(3, dtype='f').view(pl.recarray) # TODO: 3 is the number of causes: need to figure out how to do this with an indefinite number of causes...
-    rel_err = pl.zeros(3, dtype='f').view(pl.recarray)
-    coverage = pl.zeros(3, dtype='f').view(pl.recarray)
+    abs_err = pl.zeros(cause_count, dtype='f').view(pl.recarray) 
+    rel_err = pl.zeros(cause_count, dtype='f').view(pl.recarray)
+    coverage = pl.zeros(cause_count, dtype='f').view(pl.recarray)
     csmf_accuracy = []
     for i in range(reps): 
         metrics = pl.csv2rec('%s/metrics_%s_%i.csv' % (dir, model, i))
@@ -68,18 +70,38 @@ def combine_output(model, dir, reps):
     coverage = coverage[1:,]
     return abs_err, rel_err, csmf_accuracy, coverage
 
+def clean_up(model, dir, reps):
+    """
+    """
+    
+    for i in range(reps):
+        os.remove('%s/metrics_%s_%i.csv' % (dir, model, i))
+
+
 def run_all_sequentially(dir, true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.01], reps=5): 
     """
     """
+    
+    # repeatedly run validate_once and save output 
     for i in range(reps): 
         bad_model_metrics, latent_dirichlet_metrics = validate_once(true_cf, true_std)
         pl.rec2csv(bad_model_metrics, '%s/metrics_bad_model_%i.csv' % (dir, i)) 
         pl.rec2csv(latent_dirichlet_metrics, '%s/metrics_latent_dirichlet_%i.csv' % (dir, i))
-    b_abs_err, b_rel_err, b_csmf_accuracy, b_coverage = combine_output('bad_model', dir, reps)
-    l_abs_err, l_rel_err, l_csmf_accuracy, l_coverage = combine_output('latent_dirichlet', dir, reps)    
-    # not sure what to do with all this output yet... 
+    
+    # combine all output across repetitions 
+    b_abs_err, b_rel_err, b_csmf_accuracy, b_coverage = combine_output(len(true_cf), 'bad_model', dir, reps)
+    l_abs_err, l_rel_err, l_csmf_accuracy, l_coverage = combine_output(len(true_cf), 'latent_dirichlet', dir, reps)    
+    
+    # delete intermediate files 
+    clean_up('bad_model', dir, reps)
+    clean_up('latent_dirichlet', dir, reps)
+    
+    # format the output and save
+    # TODO: format me better. 
+    # TODO: save me to disk. 
     return b_abs_err, b_rel_err, b_csmf_accuracy, b_coverage, l_abs_err, l_rel_err, l_csmf_accuracy, l_coverage
  
+
 
 
 
