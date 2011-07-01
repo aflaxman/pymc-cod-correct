@@ -1,6 +1,7 @@
 import pymc as mc 
 import pylab as pl 
 import os
+import subprocess
 
 import data
 import graphics
@@ -56,7 +57,7 @@ def validate_once(true_cf = pl.ones(3)/3.0, true_std = 0.01*pl.ones(3), save=Fal
     else: 
         return bad_model_metrics, latent_dirichlet_metrics
 
-def combine_output(cause_count, model, dir, reps):
+def combine_output(cause_count, model, dir, reps, save=False):
     """
     """
 
@@ -73,7 +74,13 @@ def combine_output(cause_count, model, dir, reps):
     abs_err = abs_err[1:,]
     rel_err = rel_err[1:,]
     coverage = coverage[1:,]
-    return abs_err, rel_err, csmf_accuracy, coverage
+	
+    if save: 
+        data.array2csv(abs_err, '%s/%s_abs_err.csv' % (dir, model))
+        data.array2csv(rel_err, '%s/%s_rel_err.csv' % (dir, model))
+        data.array2csv(coverage, '%s/%s_coverage.csv' % (dir, model))
+    else: 
+        return abs_err, rel_err, csmf_accuracy, coverage
 
 def clean_up(model, dir, reps):
     """
@@ -91,20 +98,31 @@ def run_all_sequentially(dir, true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.0
         validate_once(true_cf, true_std, True, dir, i)
 
     # combine all output across repetitions 
-    b_abs_err, b_rel_err, b_csmf_accuracy, b_coverage = combine_output(len(true_cf), 'bad_model', dir, reps)
-    l_abs_err, l_rel_err, l_csmf_accuracy, l_coverage = combine_output(len(true_cf), 'latent_dirichlet', dir, reps)    
+    combine_output(len(true_cf), 'bad_model', dir, reps, True)
+    combine_output(len(true_cf), 'latent_dirichlet', dir, reps, True)  
     
     # delete intermediate files 
     clean_up('bad_model', dir, reps)
     clean_up('latent_dirichlet', dir, reps)
-    
-    # format the output and save
-    # TODO: format me better. 
-    # TODO: save me to disk. 
-    return b_abs_err, b_rel_err, b_csmf_accuracy, b_coverage, l_abs_err, l_rel_err, l_csmf_accuracy, l_coverage
  
-
-
-
-
+def run_on_cluster(dir='../data', true_cf=[0.5, 0.5], true_std=[0.01, 0.01], reps=2):
+    """
+    """
+    
+    # write true_cf and true_std to file
+    truth = pl.np.core.records.fromarrays([true_cf, true_std], names=['true_cf', 'true_std'])
+    pl.rec2csv(truth, '%s/truth.csv' % (dir))    
+    
+    # submit all individual jobs to retrieve true_cf and true_std and run validate_once
+    all_names = [] 
+    for i in range(reps): 
+        name = 'codcorrect_%i' % (i)
+        call = 'qsub -cwd -N %s cluster_shell.sh cluster_validate.py %i' % (name, i)
+        subprocess.call(call, shell=True)
+        all_names.append(name)
+    
+    # submit job to run combine_output and clean_up 
+    hold_string = '-hold_jid %s ' % ','.join(all_names)
+    call = 'qsub -cwd %s -N codcorrect_combine cluster_shell.sh cluster_validate_combine.py %i' % (hold_string, reps)
+    subprocess.call(call, shell=True)  
 
