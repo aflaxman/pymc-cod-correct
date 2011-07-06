@@ -19,7 +19,7 @@ def calc_coverage(true_cf, preds):
     hpd = mc.utils.hpd(preds, 0.05)
     covered = [hpd[cause][0] < true_cf[cause] < hpd[cause][1] for cause in range(J)]
     return pl.array(covered)
-    
+
 def calc_quality_metrics(true_cf, preds): 
     """ 
     Calculate the CSMF accuracy, aboslute error, and relative error for the 
@@ -85,6 +85,7 @@ def combine_output(cause_count, model, dir, reps, save=False):
         data.array2csv(abs_err, '%s/%s_abs_err.csv' % (dir, model))
         data.array2csv(rel_err, '%s/%s_rel_err.csv' % (dir, model))
         data.array2csv(coverage, '%s/%s_coverage.csv' % (dir, model))
+        data.array2csv(pl.array(csmf_accuracy).reshape(reps,1), '%s/%s_csmf_accuracy.csv' % (dir, model))
     else: 
         return abs_err, rel_err, csmf_accuracy, coverage
 
@@ -96,7 +97,7 @@ def clean_up(model, dir, reps):
     for i in range(reps):
         os.remove('%s/metrics_%s_%i.csv' % (dir, model, i))
 
-def run_all_sequentially(dir, true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.01], reps=5): 
+def run_all_sequentially(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.01], reps=5): 
     """
     Runs validate_once multiple times (as sepcified by reps) for the given true_cf and 
     true_std. Combines the output and cleans up the temp files. This is all accomplished
@@ -114,8 +115,8 @@ def run_all_sequentially(dir, true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.0
     # delete intermediate files 
     clean_up('bad_model', dir, reps)
     clean_up('latent_dirichlet', dir, reps)
- 
-def run_on_cluster(dir='../data', true_cf=[0.5, 0.5], true_std=[0.01, 0.01], reps=2):
+
+def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.01], reps=5):
     """
     Runs validate_once multiple times (as sepcified by reps) for the given true_cf and 
     true_std. Combines the output and cleans up the temp files. This accomplished in 
