@@ -16,8 +16,8 @@ def array2csv(Y, fname):
 def logit_normal_draw(cf_mean, std, N, J):
     std = pl.array(std)
     if mc.__version__ == '2.0rc2': # version on Omak 
-        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=N)  
-        Y = mc.invlogit(X).reshape(N,J) 
+        X = [mc.invlogit(mc.rnormal(mu=cf_mean, tau=std**-2)) for n in range(N)]
+        Y = pl.array(X)
     else: 
         X = mc.rnormal(mu=cf_mean, tau=std**-2, size=(N,J))
         Y = mc.invlogit(X)
