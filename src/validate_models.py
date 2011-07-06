@@ -10,6 +10,9 @@ reload(models)
 
 def calc_coverage(true_cf, preds):
     """
+    Calculates the 95% hpd region for each cause from the provided model output; Returns an array 
+    the same length as true_cf which contains 1 for each cause that is included in the 95% hpd 
+    region and 0 elsewhere.
     """
     
     J = len(true_cf)
@@ -20,7 +23,7 @@ def calc_coverage(true_cf, preds):
 def calc_quality_metrics(true_cf, preds): 
     """ 
     Calculate the CSMF accuracy, aboslute error, and relative error for the 
-        provided true and predicted CSMFs
+    provided true and predicted CSMFs.
     """
     
     pred_cf = pl.array(preds.mean(0))
@@ -36,7 +39,7 @@ def calc_quality_metrics(true_cf, preds):
 def validate_once(true_cf = pl.ones(3)/3.0, true_std = 0.01*pl.ones(3), save=False, dir='', i=0):
     """
     Generate a set of simulated estimates for the provided true cause fractions; Fit the bad model and 
-        the latent dirichlet model to this data and calculate quality metrics. 
+    the latent dirichlet model to this simulated data and calculate quality metrics. 
     """ 
     
     # generate simulation data
@@ -59,6 +62,9 @@ def validate_once(true_cf = pl.ones(3)/3.0, true_std = 0.01*pl.ones(3), save=Fal
 
 def combine_output(cause_count, model, dir, reps, save=False):
     """
+    Combine output on absolute error, relative error, csmf_accuracy, and coverage from from
+    multiple runs of validate_once. Either saves the output to the disk, or returns arays
+    for each. 
     """
 
     abs_err = pl.zeros(cause_count, dtype='f').view(pl.recarray) 
@@ -74,7 +80,7 @@ def combine_output(cause_count, model, dir, reps, save=False):
     abs_err = abs_err[1:,]
     rel_err = rel_err[1:,]
     coverage = coverage[1:,]
-	
+    
     if save: 
         data.array2csv(abs_err, '%s/%s_abs_err.csv' % (dir, model))
         data.array2csv(rel_err, '%s/%s_rel_err.csv' % (dir, model))
@@ -84,6 +90,7 @@ def combine_output(cause_count, model, dir, reps, save=False):
 
 def clean_up(model, dir, reps):
     """
+    Delete temporary files produced when running validate_once multiple times.
     """
     
     for i in range(reps):
@@ -91,6 +98,9 @@ def clean_up(model, dir, reps):
 
 def run_all_sequentially(dir, true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.01], reps=5): 
     """
+    Runs validate_once multiple times (as sepcified by reps) for the given true_cf and 
+    true_std. Combines the output and cleans up the temp files. This is all accomplished
+    sequentially on the local machine. 
     """
     
     # repeatedly run validate_once and save output 
@@ -107,6 +117,12 @@ def run_all_sequentially(dir, true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.0
  
 def run_on_cluster(dir='../data', true_cf=[0.5, 0.5], true_std=[0.01, 0.01], reps=2):
     """
+    Runs validate_once multiple times (as sepcified by reps) for the given true_cf and 
+    true_std. Combines the output and cleans up the temp files. This accomplished in 
+    parallel on the cluster. This function requires that the files cluster_shell.sh 
+    (which allows for submission of a job for each iteration), cluster_validate.py (which
+    runs validate_once for each iteration), and cluster_validate_combine.py (which 
+    runs combine_output all exist. 
     """
     
     # write true_cf and true_std to file
