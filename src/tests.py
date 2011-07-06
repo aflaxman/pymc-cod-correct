@@ -20,7 +20,18 @@ class TestClass:
 
         sim_data = data.sim_data(10, [.1, .4, .5], [.1, .1, .1])
         assert sim_data.shape == (10,3), 'Should be 10x3 matrix of data (%s found)' % str(sim_data.shape)
-        
+     
+    def test_sim_data_2(self): 
+        sims = 10000 
+        test1 = pl.zeros(3, dtype='f').view(pl.recarray)
+        for i in range(sims): 
+            temp = data.sim_data(1, [0.1,0.1,0.8], [0.01,0.01,0.01])
+            test1 = pl.vstack((test1, temp))
+        test1 = test1[1:,]
+        test2 = data.sim_data(sims, [0.1,0.1,0.8], [0.01, 0.01, 0.01])
+        diff = (test1.mean(0) - test2.mean(0))/test1.mean(0)
+        assert pl.allclose(diff, 0, atol=0.01), 'should be close to zero, (%s found)' % str(diff)
+
     def test_get_cod_data(self): 
         cf = data.get_cod_data(level=1)
         assert len(cf.cause) == 3 and cf.cause.dtype == 'S1'
