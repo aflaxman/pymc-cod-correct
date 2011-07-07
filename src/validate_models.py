@@ -139,13 +139,13 @@ def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01,
     # submit all individual jobs to retrieve true_cf and true_std and run validate_once
     all_names = [] 
     for i in range(reps): 
-        name = 'cc_%s_%i' % (tag, i)
+        name = 'cc%s_%i' % (tag, i)
         call = 'qsub -cwd -N %s cluster_shell.sh cluster_validate.py %i "%s"' % (name, i, dir)
         subprocess.call(call, shell=True)
         all_names.append(name)
     
     # submit job to run combine_output and clean_up 
     hold_string = '-hold_jid %s ' % ','.join(all_names)
-    call = 'qsub -cwd %s -N cc_%s_comb cluster_shell.sh cluster_validate_combine.py %i "%s"' % (hold_string, tag, reps, dir)
+    call = 'qsub -cwd %s -N cc%s_comb cluster_shell.sh cluster_validate_combine.py %i "%s"' % (hold_string, tag, reps, dir)
     subprocess.call(call, shell=True)  
 
