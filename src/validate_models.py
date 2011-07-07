@@ -111,35 +111,6 @@ def combine_output(cause_count, model, dir, reps, save=False):
         pl.rec2csv(all, '%s/%s_summary.csv' % (dir, model)) 
     else: 
         return summary, abs_err, rel_err, csmf_accuracy, coverage
-
-def summarize_output(dir, model): 
-    """
-    Calculate summary measures of the quality metrics for a given model fit
-    """
-    
-    abs_err = data.csv2array('%s/%s_abs_err.csv' % (dir, model))
-    mean_abs_err = abs_err.mean(0)
-    median_abs_err =  pl.median(abs_err, 0)
-
-    rel_err = data.csv2array('%s/%s_rel_err.csv' % (dir, model))
-    mean_rel_err = rel_err.mean(0)
-    median_rel_err = pl.median(rel_err, 0)
-
-    csmf_accuracy = data.csv2array('%s/%s_csmf_accuracy.csv' % (dir, model))
-    mean_csmf_accuracy = csmf_accuracy.mean(0)
-    median_csmf_accuracy = pl.median(csmf_accuracy, 0)
-
-    coverage = data.csv2array('%s/%s_coverage.csv' % (dir, model))
-    mean_coverage_bycause = coverage.mean(0)
-    median_coverage_bycause = pl.median(coverage, 0)
-    mean_coverage = pl.mean(coverage.mean(1))
-    percent_total_coverage = pl.mean(coverage.mean(1)==1)
-    
-    all = [mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, mean_csmf_accuracy, median_csmf_accuracy, mean_coverage_bycause, median_coverage_bycause, mean_coverage, percent_total_coverage]
-    return all 
-    # add ability to write or return this like other functions here 
-    # does it make sense to do this?? it make more sense just to put this into the quality_metrics function in the first place and skip this step and the extra burden of 
-    #   saving and retrieving from the J drive. 
     
 def clean_up(model, dir, reps):
     """
