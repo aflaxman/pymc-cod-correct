@@ -2,6 +2,7 @@ import pymc as mc
 import pylab as pl 
 import os
 import subprocess
+import csv
 
 import data
 import graphics
@@ -82,10 +83,10 @@ def combine_output(cause_count, model, dir, reps, save=False):
     coverage = coverage[1:,]
     
     if save: 
-        data.array2csv(abs_err, '%s/%s_abs_err.csv' % (dir, model))
-        data.array2csv(rel_err, '%s/%s_rel_err.csv' % (dir, model))
-        data.array2csv(coverage, '%s/%s_coverage.csv' % (dir, model))
-        data.array2csv(pl.array(csmf_accuracy).reshape(reps,1), '%s/%s_csmf_accuracy.csv' % (dir, model))
+        data.rec2csv_2d(abs_err, '%s/%s_abs_err.csv' % (dir, model))
+        data.rec2csv_2d(rel_err, '%s/%s_rel_err.csv' % (dir, model))
+        data.rec2csv_2d(coverage, '%s/%s_coverage.csv' % (dir, model))
+        data.rec2csv_2d(pl.array(csmf_accuracy).reshape(reps,1), '%s/%s_csmf_accuracy.csv' % (dir, model))
     else: 
         return abs_err, rel_err, csmf_accuracy, coverage
 
@@ -148,4 +149,10 @@ def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01,
     hold_string = '-hold_jid %s ' % ','.join(all_names)
     call = 'qsub -cwd %s -N cc%s_comb cluster_shell.sh cluster_validate_combine.py %i "%s"' % (hold_string, tag, reps, dir)
     subprocess.call(call, shell=True)  
+
+
+
+
+
+
 

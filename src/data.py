@@ -6,12 +6,26 @@ import pymc as mc
 import csv 
 import os
 
-def array2csv(Y, fname):
+def rec2csv_2d(Y, fname):
     """
     write a 2-dimensional recarray to a csv file
     """
     
     pl.rec2csv(pl.np.core.records.fromarrays(Y.T), fname)
+
+def csv2array(fname): 
+    """
+    write a csv file to a 2-dimensional array (assumes all variables are numeric). 
+    This allows for reading a csv into an array formatted such that means and other
+    numeric functions are possible along the rows and columns. 
+    """
+    
+    Y = []
+    read = csv.reader(open(fname))
+    read.next()
+    for row in read: 
+        Y.append(row)
+    return pl.array(Y, dtype='f')
 
 def logit_normal_draw(cf_mean, std, N, J):
     std = pl.array(std)
