@@ -118,14 +118,16 @@ def run_all_sequentially(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01,
     clean_up('bad_model', dir, reps)
     clean_up('latent_dirichlet', dir, reps)
 
-def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.01], reps=5):
+def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.01], reps=5, tag=''):
     """
-    Runs validate_once multiple times (as sepcified by reps) for the given true_cf and 
+    Runs validate_once multiple times (as specified by reps) for the given true_cf and 
     true_std. Combines the output and cleans up the temp files. This accomplished in 
     parallel on the cluster. This function requires that the files cluster_shell.sh 
     (which allows for submission of a job for each iteration), cluster_validate.py (which
     runs validate_once for each iteration), and cluster_validate_combine.py (which 
-    runs combine_output all exist. 
+    runs combine_output all exist. The tag argument allows for adding a string to the job 
+    names so that this function can be run multiple times simultaneously and not have 
+    conflicts between jobs with the same name. 
     """
     
     if os.path.exists(dir) == False: os.mkdir(dir)
@@ -137,13 +139,13 @@ def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01,
     # submit all individual jobs to retrieve true_cf and true_std and run validate_once
     all_names = [] 
     for i in range(reps): 
-        name = 'cc_%i' % (i)
+        name = 'cc_%s_%i' % (tag, i)
         call = 'qsub -cwd -N %s cluster_shell.sh cluster_validate.py %i "%s"' % (name, i, dir)
         subprocess.call(call, shell=True)
         all_names.append(name)
     
     # submit job to run combine_output and clean_up 
     hold_string = '-hold_jid %s ' % ','.join(all_names)
-    call = 'qsub -cwd %s -N cc_combine cluster_shell.sh cluster_validate_combine.py %i "%s"' % (hold_string, reps, dir)
+    call = 'qsub -cwd %s -N cc_%s_comb cluster_shell.sh cluster_validate_combine.py %i "%s"' % (hold_string, tag, reps, dir)
     subprocess.call(call, shell=True)  
 
