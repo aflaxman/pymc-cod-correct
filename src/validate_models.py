@@ -82,7 +82,7 @@ def combine_output(cause_count, model, dir, reps, save=False):
     rel_err = rel_err[1:,]
     coverage = coverage[1:,]
     csmf_accuracy = pl.array(csmf_accuracy).reshape(reps,1)
-    
+
     mean_abs_err = abs_err.mean(0)
     median_abs_err =  pl.median(abs_err, 0)
     mean_rel_err = rel_err.mean(0)
@@ -94,11 +94,14 @@ def combine_output(cause_count, model, dir, reps, save=False):
     mean_coverage = pl.mean(coverage.mean(1))
     percent_total_coverage = pl.mean(coverage.mean(1)==1)
 
-    all = pl.np.core.records.fromarrays([mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, 
+    models = [model for j in range(cause_count)]
+    causes = [cause for cause in range(cause_count)]    
+
+    all = pl.np.core.records.fromarrays([models, causes, mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, 
                                          pl.ones(cause_count)*mean_csmf_accuracy, pl.ones(cause_count)*median_csmf_accuracy, 
                                          mean_coverage_bycause, median_coverage_bycause, pl.ones(cause_count)*mean_coverage, 
                                          pl.ones(cause_count)*percent_total_coverage], 
-                                        names=['mean_abs_err', 'median_abs_err', 
+                                        names=['model', 'cause', 'mean_abs_err', 'median_abs_err', 
                                          'mean_rel_err', 'median_rel_err', 'mean_csmf_accuracy', 'median_csmf_accuracy', 
                                          'mean_covearge_bycause', 'median_coverage_bycause', 'mean_coverage', 
                                          'percent_total_coverage'])
