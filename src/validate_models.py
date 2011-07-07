@@ -103,6 +103,8 @@ def run_all_sequentially(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01,
     true_std. Combines the output and cleans up the temp files. This is all accomplished
     sequentially on the local machine. 
     """
+
+    if os.path.exists(dir) == False: os.mkdir(dir)
     
     # repeatedly run validate_once and save output 
     for i in range(reps): 
@@ -126,6 +128,8 @@ def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01,
     runs combine_output all exist. 
     """
     
+    if os.path.exists(dir) == False: os.mkdir(dir)
+
     # write true_cf and true_std to file
     truth = pl.np.core.records.fromarrays([true_cf, true_std], names=['true_cf', 'true_std'])
     pl.rec2csv(truth, '%s/truth.csv' % (dir))    
