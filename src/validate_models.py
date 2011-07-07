@@ -36,7 +36,7 @@ def calc_quality_metrics(true_cf, preds):
     coverage = calc_coverage(true_cf, preds)
     all = pl.np.core.records.fromarrays([abs_err, rel_err, pl.ones(len(pred_cf))*csmf_accuracy, coverage], names=['abs_err','rel_err','csmf_accuracy','coverage'])
     return all
-
+    
 def validate_once(true_cf = pl.ones(3)/3.0, true_std = 0.01*pl.ones(3), save=False, dir='', i=0):
     """
     Generate a set of simulated estimates for the provided true cause fractions; Fit the bad model and 
@@ -81,15 +81,66 @@ def combine_output(cause_count, model, dir, reps, save=False):
     abs_err = abs_err[1:,]
     rel_err = rel_err[1:,]
     coverage = coverage[1:,]
+    csmf_accuracy = pl.array(csmf_accuracy).reshape(reps,1)
     
+    mean_abs_err = abs_err.mean(0)
+    median_abs_err =  pl.median(abs_err, 0)
+    mean_rel_err = rel_err.mean(0)
+    median_rel_err = pl.median(rel_err, 0)
+    mean_csmf_accuracy = csmf_accuracy.mean(0)
+    median_csmf_accuracy = pl.median(csmf_accuracy, 0)
+    mean_coverage_bycause = coverage.mean(0)
+    median_coverage_bycause = pl.median(coverage, 0)
+    mean_coverage = pl.mean(coverage.mean(1))
+    percent_total_coverage = pl.mean(coverage.mean(1)==1)
+
+    all = pl.np.core.records.fromarrays([mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, 
+                                         pl.ones(cause_count)*mean_csmf_accuracy, pl.ones(cause_count)*median_csmf_accuracy, 
+                                         mean_coverage_bycause, median_coverage_bycause, pl.ones(cause_count)*mean_coverage, 
+                                         pl.ones(cause_count)*percent_total_coverage], 
+                                        names=['mean_abs_err', 'median_abs_err', 
+                                         'mean_rel_err', 'median_rel_err', 'mean_csmf_accuracy', 'median_csmf_accuracy', 
+                                         'mean_covearge_bycause', 'median_coverage_bycause', 'mean_coverage', 
+                                         'percent_total_coverage'])
+
     if save: 
         data.rec2csv_2d(abs_err, '%s/%s_abs_err.csv' % (dir, model))
         data.rec2csv_2d(rel_err, '%s/%s_rel_err.csv' % (dir, model))
         data.rec2csv_2d(coverage, '%s/%s_coverage.csv' % (dir, model))
         data.rec2csv_2d(pl.array(csmf_accuracy).reshape(reps,1), '%s/%s_csmf_accuracy.csv' % (dir, model))
+        pl.rec2csv(all, '%s/%s_summary.csv' % (dir, model)) 
     else: 
-        return abs_err, rel_err, csmf_accuracy, coverage
+        return summary, abs_err, rel_err, csmf_accuracy, coverage
 
+def summarize_output(dir, model): 
+    """
+    Calculate summary measures of the quality metrics for a given model fit
+    """
+    
+    abs_err = data.csv2array('%s/%s_abs_err.csv' % (dir, model))
+    mean_abs_err = abs_err.mean(0)
+    median_abs_err =  pl.median(abs_err, 0)
+
+    rel_err = data.csv2array('%s/%s_rel_err.csv' % (dir, model))
+    mean_rel_err = rel_err.mean(0)
+    median_rel_err = pl.median(rel_err, 0)
+
+    csmf_accuracy = data.csv2array('%s/%s_csmf_accuracy.csv' % (dir, model))
+    mean_csmf_accuracy = csmf_accuracy.mean(0)
+    median_csmf_accuracy = pl.median(csmf_accuracy, 0)
+
+    coverage = data.csv2array('%s/%s_coverage.csv' % (dir, model))
+    mean_coverage_bycause = coverage.mean(0)
+    median_coverage_bycause = pl.median(coverage, 0)
+    mean_coverage = pl.mean(coverage.mean(1))
+    percent_total_coverage = pl.mean(coverage.mean(1)==1)
+    
+    all = [mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, mean_csmf_accuracy, median_csmf_accuracy, mean_coverage_bycause, median_coverage_bycause, mean_coverage, percent_total_coverage]
+    return all 
+    # add ability to write or return this like other functions here 
+    # does it make sense to do this?? it make more sense just to put this into the quality_metrics function in the first place and skip this step and the extra burden of 
+    #   saving and retrieving from the J drive. 
+    
 def clean_up(model, dir, reps):
     """
     Delete temporary files produced when running validate_once multiple times.
@@ -149,8 +200,6 @@ def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01,
     hold_string = '-hold_jid %s ' % ','.join(all_names)
     call = 'qsub -cwd %s -N cc%s_comb cluster_shell.sh cluster_validate_combine.py %i "%s"' % (hold_string, tag, reps, dir)
     subprocess.call(call, shell=True)  
-
-
 
 
 
