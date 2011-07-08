@@ -14,8 +14,9 @@ def bad_model(X):
 def latent_dirichlet(X):
     N, J = X.shape
 
+    mu_pi_ = (pl.mean(X, 0) / pl.mean(X,0).sum())[:-1]
     pi_ = mc.Dirichlet('pi_', theta=pl.ones(J),
-                       value=pl.array(X).mean(0)[:-1])
+                       value=mu_pi_)
     @mc.deterministic
     def pi(pi_=pi_):
         J = len(pl.atleast_1d(pi_))+1
@@ -52,4 +53,7 @@ def fit_latent_dirichlet(X, iter=1000, burn=500, thin=5):
     print 'acorrs:', pl.diag(pl.floor(acorr5*1000.+.5)/1000.)
 
     return m, pi.view(pl.recarray)
+
+def pretty_array(X, digits):
+    return str(X)
 
