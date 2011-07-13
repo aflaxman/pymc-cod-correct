@@ -12,29 +12,32 @@ def bad_model(X):
     return Y.view(pl.recarray) 
 
 def latent_dirichlet(X):
-    N, J = X.shape
+    """ TODO: describe this function"""
+    N, T, J = X.shape
 
-    mu_pi_ = (pl.mean(X, 0) / pl.mean(X,0).sum())[:-1]
-    pi_ = mc.Dirichlet('pi_', theta=pl.ones(J),
-                       value=mu_pi_)
+    pi_ = []
+    for t in range(T):
+        mu_pi_t = (pl.mean(X[:,t,:], 0) / pl.mean(X[:,t,:], 0).sum())[:-1]
+        pi_.append(mc.Dirichlet('pi_%d'%t, theta=pl.ones(J),
+                                value=mu_pi_t))
+
     @mc.deterministic
     def pi(pi_=pi_):
-        J = len(pl.atleast_1d(pi_))+1
-        pi = pl.zeros(J)
-        pi[0:(J-1)] = pi_
-        pi[J-1] = 1. - pl.atleast_1d(pi_).sum()
+        pi = pl.zeros((T, J))
+        for t in range(T):
+            pi[t, 0:(J-1)] = pi_[t]
+            pi[t, J-1] = 1. - pl.atleast_1d(pi_[t]).sum()
         return pi
 
-    alpha = 1 #mc.Exponential('alpha', beta=1., value=1./X.mean())
-
     tau = mc.Uniform('tau', lower=1.**-2, upper=.0001**-2,
-                     value=pl.array(X).std(0)**-2)
+                     value=[pl.array(X[:,t,:]).std(0)**-2 for t in range(T)])
         
     @mc.observed
-    def X_obs(pi=pi, tau=tau, alpha=alpha, value=X):
-        N = len(value)
-        logp_i = pl.array([mc.normal_like(value[i,:]*alpha, pi, tau) for i in range(N)])
-        return mc.flib.logsum(logp_i - pl.log(N))        
+    def X_obs(pi=pi, tau=tau, value=X):
+        logp = pl.zeros(N)
+        for n in range(N):
+            logp[n] = mc.normal_like(value[n].ravel(), pi.ravel(), tau.ravel())
+        return mc.flib.logsum(logp - pl.log(N))        
     
     return vars()
 
