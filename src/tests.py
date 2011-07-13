@@ -66,16 +66,16 @@ class TestClass:
     def test_bad_model(self):
         X = data.sim_data(10)
         Y = models.bad_model(X)
-        assert pl.allclose(Y.sum(axis=1), 1), 'should be all ones, (%s found)' % str(Y.sum(axis=1))
+        assert pl.allclose(Y.sum(axis=2), 1), 'should be all ones, (%s found)' % str(Y.sum(axis=2))
 
-        # test again for 10x3 dataset
-        X = data.sim_data(10, [.1, .4, .5], [.1, .1, .1])
+        # test again for 10x2x3 dataset
+        X = data.sim_data(10, [[.1, .4, .5]], [.1, .1, .1])
         Y = models.bad_model(X)
-        assert pl.allclose(Y.sum(axis=1), 1), 'should be all ones, (%s found)' % str(Y.sum(axis=1))
+        assert pl.allclose(Y.sum(axis=2), 1), 'should be all ones, (%s found)' % str(Y.sum(axis=2))
 
     def test_good_model(self):
         vars = models.latent_dirichlet(self.X)
-        assert pl.sum(vars['pi'].value) <= 1.0, 'pi value should sum to at most 1, (%s found)' % sum(vars['pi'].value)
+        assert pl.all(pl.sum(vars['pi'].value, 1) <= 1.0), 'pi values should sum to at most 1, (%s found)' % pl.sum(vars['pi'].value, 1)
         m = mc.MCMC(vars)
         m.sample(10)
 
