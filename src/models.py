@@ -30,9 +30,9 @@ def latent_dirichlet(X):
             pi[t] = pl.reshape(pl.exp(alpha[t]), J) / pl.sum(pl.exp(alpha[t]))
         return pi
 
-    beta = mc.Normal('beta', mu=0., tau=1., value=pl.zeros_like(pi.value), doc='bias term')
+    beta = mc.Normal('beta', mu=0., tau=.1**-2, value=pl.zeros_like(pi.value), doc='bias term')
 
-    sigma = [[mc.Normal('tau_%d_%d'%(t,j), mu=X[:,t,j].std(), tau=1.**-2,
+    sigma = [[mc.Normal('sigma_%d_%d'%(t,j), mu=X[:,t,j].std(), tau=.01**-2,
                       value=X[:,t,j].std()) for j in range(J)] for t in range(T)]
         
     @mc.observed
@@ -53,14 +53,14 @@ def fit_latent_dirichlet(X, iter=1000, burn=500, thin=5):
     m.fit(method='fmin_powell', verbose=1)
     print vars['pi'].value
 
-    for em in range(0):
-        m = mc.MAP([vars['alpha'], vars['X_obs']])
+    for em in range(2):
+        m = mc.MAP([vars['alpha'],vars['beta'], vars['X_obs']])
         m.fit(method='fmin_powell', verbose=1)
         print vars['pi'].value
 
-        m = mc.MAP([vars['tau'], vars['X_obs']])
+        m = mc.MAP([vars['sigma'], vars['X_obs']])
         m.fit(method='fmin_powell', verbose=1)
-        print [[tau_tj.value for tau_tj in tau_t] for tau_t in vars['tau']]
+        print [['%.2f'%sigma_tj.value for sigma_tj in sigma_t] for sigma_t in vars['sigma']]
     
     m = mc.MCMC(vars)
 
