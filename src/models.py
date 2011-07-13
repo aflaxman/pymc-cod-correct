@@ -15,45 +15,67 @@ def latent_dirichlet(X):
     """ TODO: describe this function"""
     N, T, J = X.shape
 
-    pi_ = []
+    alpha = []
     for t in range(T):
-        mu_pi_t = (pl.mean(X[:,t,:], 0) / pl.mean(X[:,t,:], 0).sum())[:-1]
-        pi_.append(mc.Dirichlet('pi_%d'%t, theta=pl.ones(J),
-                                value=mu_pi_t))
+        alpha_t = []
+        for j in range(J):
+            mu_alpha_tj = pl.mean(X[:,t,j]) / pl.mean(X[:,t,:], 0).sum()
+            alpha_t.append(mc.Normal('alpha_%d_%d'%(t,j), mu=0., tau=1., value=pl.log(mu_alpha_tj)))
+        alpha.append(alpha_t)
 
     @mc.deterministic
-    def pi(pi_=pi_):
+    def pi(alpha=alpha):
         pi = pl.zeros((T, J))
         for t in range(T):
-            pi[t, 0:(J-1)] = pi_[t]
-            pi[t, J-1] = 1. - pl.atleast_1d(pi_[t]).sum()
+            pi[t] = pl.reshape(pl.exp(alpha[t]), J) / pl.sum(pl.exp(alpha[t]))
         return pi
 
-    tau = mc.Uniform('tau', lower=1.**-2, upper=.0001**-2,
-                     value=[pl.array(X[:,t,:]).std(0)**-2 for t in range(T)])
+    beta = mc.Normal('beta', mu=0., tau=1., value=pl.zeros_like(pi.value), doc='bias term')
+
+    sigma = [[mc.Normal('tau_%d_%d'%(t,j), mu=X[:,t,j].std(), tau=1.**-2,
+                      value=X[:,t,j].std()) for j in range(J)] for t in range(T)]
         
     @mc.observed
-    def X_obs(pi=pi, tau=tau, value=X):
+    def X_obs(pi=pi, beta=beta, sigma=sigma, value=X):
         logp = pl.zeros(N)
         for n in range(N):
-            logp[n] = mc.normal_like(value[n].ravel(), pi.ravel(), tau.ravel())
-        return mc.flib.logsum(logp - pl.log(N))        
+            logp[n] = mc.normal_like(pl.array(value[n]).ravel(),
+                                     pl.array(pi).ravel(),
+                                     pl.array(sigma).ravel()**-2)
+        return mc.flib.logsum(logp - pl.log(N))
     
     return vars()
 
 def fit_latent_dirichlet(X, iter=1000, burn=500, thin=5): 
     vars = latent_dirichlet(X)
-    #m = mc.MAP([vars['pi_'], vars['X_obs']])
-    #m.fit(verbose=1)
+
+    m = mc.MAP([vars['alpha'], vars['beta'], vars['X_obs']])
+    m.fit(method='fmin_powell', verbose=1)
+    print vars['pi'].value
+
+    for em in range(0):
+        m = mc.MAP([vars['alpha'], vars['X_obs']])
+        m.fit(method='fmin_powell', verbose=1)
+        print vars['pi'].value
+
+        m = mc.MAP([vars['tau'], vars['X_obs']])
+        m.fit(method='fmin_powell', verbose=1)
+        print [[tau_tj.value for tau_tj in tau_t] for tau_t in vars['tau']]
     
-    m = mc.MCMC(vars) #, db='txt', dbname=dir + '/latent_dirichlet')
+    m = mc.MCMC(vars)
+
+    for alpha_t, sigma_t in zip(m.alpha, m.sigma):
+        m.use_step_method(mc.AdaptiveMetropolis, alpha_t)
+        m.use_step_method(mc.AdaptiveMetropolis, sigma_t)
+    m.use_step_method(mc.AdaptiveMetropolis, m.beta)
+
     m.sample(iter, burn, thin, verbose=1)
     pi = m.pi.trace()
 
     print 'mean: ', pl.floor(m.pi.stats()['mean']*100.+.5)/100.
     print 'ui:\n', pl.floor(m.pi.stats()['95% HPD interval']*100.+.5)/100.
-    acorr5 = pl.dot((pi - pi.mean(0))[:-5].T, (pi - pi.mean(0))[5:]) / pl.dot((pi - pi.mean(0))[:].T, (pi - pi.mean(0))[:])
-    print 'acorrs:', pl.diag(pl.floor(acorr5*1000.+.5)/1000.)
+    #acorr5 = pl.dot((pi - pi.mean(0))[:-5].T, (pi - pi.mean(0))[5:]) / pl.dot((pi - pi.mean(0))[:].T, (pi - pi.mean(0))[:])
+    #print 'acorrs:', pl.diag(pl.floor(acorr5*1000.+.5)/1000.)
 
     return m, pi.view(pl.recarray)
 
