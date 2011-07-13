@@ -21,9 +21,9 @@ def calc_coverage(true_cf, preds):
     covered = [hpd[cause][0] < true_cf[cause] < hpd[cause][1] for cause in range(J)]
     return pl.array(covered)
 
-def calc_quality_metrics(true_cf, preds): 
+def calc_quality_metrics(true_cf, true_std, preds): 
     """ 
-    Calculate the CSMF accuracy, aboslute error, and relative error for the 
+    Calculate the CSMF accuracy, absolute error, and relative error for the 
     provided true and predicted CSMFs.
     """
     
@@ -34,7 +34,7 @@ def calc_quality_metrics(true_cf, preds):
     abs_err = pl.absolute(pred_cf-true_cf)
     rel_err = pl.absolute(pred_cf - true_cf)/true_cf
     coverage = calc_coverage(true_cf, preds)
-    all = pl.np.core.records.fromarrays([abs_err, rel_err, pl.ones(len(pred_cf))*csmf_accuracy, coverage], names=['abs_err','rel_err','csmf_accuracy','coverage'])
+    all = pl.np.core.records.fromarrays([true_cf, true_std, abs_err, rel_err, pl.ones(len(pred_cf))*csmf_accuracy, coverage], names=['true_cf', 'true_std', 'abs_err','rel_err','csmf_accuracy','coverage'])
     return all
     
 def validate_once(true_cf = pl.ones(3)/3.0, true_std = 0.01*pl.ones(3), save=False, dir='', i=0):
@@ -48,11 +48,11 @@ def validate_once(true_cf = pl.ones(3)/3.0, true_std = 0.01*pl.ones(3), save=Fal
 
     # fit bad model, calculate 95% HPD region and fit metrics 
     bad_model = models.bad_model(X)
-    bad_model_metrics = calc_quality_metrics(true_cf, bad_model)
+    bad_model_metrics = calc_quality_metrics(true_cf, true_std, bad_model)
     
     # fit latent dirichlet model, calculate 95% HPD region and fit metrics 
-    m, latent_dirichlet = models.fit_latent_dirichlet(X) # TODO: Need to find the appropriate settings here
-    latent_dirichlet_metrics = calc_quality_metrics(true_cf, latent_dirichlet)
+    m, latent_dirichlet = models.fit_latent_dirichlet(X, 100000, 50000, 50)
+    latent_dirichlet_metrics = calc_quality_metrics(true_cf, true_std, latent_dirichlet)
 
     # either write results to disk or return them 
     if save: 
@@ -90,21 +90,20 @@ def combine_output(cause_count, model, dir, reps, save=False):
     mean_csmf_accuracy = csmf_accuracy.mean(0)
     median_csmf_accuracy = pl.median(csmf_accuracy, 0)
     mean_coverage_bycause = coverage.mean(0)
-    median_coverage_bycause = pl.median(coverage, 0)
     mean_coverage = pl.mean(coverage.mean(1))
     percent_total_coverage = pl.mean(coverage.mean(1)==1)
 
     models = [model for j in range(cause_count)]
     causes = [cause for cause in range(cause_count)]    
+    true_cf = metrics.true_cf
+    true_std = metrics.true_std
 
-    all = pl.np.core.records.fromarrays([models, causes, mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, 
+    all = pl.np.core.records.fromarrays([models, causes, true_cf, true_std, mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, 
                                          pl.ones(cause_count)*mean_csmf_accuracy, pl.ones(cause_count)*median_csmf_accuracy, 
-                                         mean_coverage_bycause, median_coverage_bycause, pl.ones(cause_count)*mean_coverage, 
-                                         pl.ones(cause_count)*percent_total_coverage], 
-                                        names=['model', 'cause', 'mean_abs_err', 'median_abs_err', 
+                                         mean_coverage_bycause, pl.ones(cause_count)*mean_coverage, pl.ones(cause_count)*percent_total_coverage], 
+                                        names=['model', 'cause', 'true_cf', 'true_std', 'mean_abs_err', 'median_abs_err', 
                                          'mean_rel_err', 'median_rel_err', 'mean_csmf_accuracy', 'median_csmf_accuracy', 
-                                         'mean_covearge_bycause', 'median_coverage_bycause', 'mean_coverage', 
-                                         'percent_total_coverage'])
+                                         'mean_covearge_bycause', 'mean_coverage', 'percent_total_coverage'])
 
     if save: 
         data.rec2csv_2d(abs_err, '%s/%s_abs_err.csv' % (dir, model))
@@ -113,7 +112,7 @@ def combine_output(cause_count, model, dir, reps, save=False):
         data.rec2csv_2d(pl.array(csmf_accuracy).reshape(reps,1), '%s/%s_csmf_accuracy.csv' % (dir, model))
         pl.rec2csv(all, '%s/%s_summary.csv' % (dir, model)) 
     else: 
-        return summary, abs_err, rel_err, csmf_accuracy, coverage
+        return all, abs_err, rel_err, csmf_accuracy, coverage
     
 def clean_up(model, dir, reps):
     """
@@ -175,6 +174,78 @@ def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01,
     call = 'qsub -cwd %s -N cc%s_comb cluster_shell.sh cluster_validate_combine.py %i "%s"' % (hold_string, tag, reps, dir)
     subprocess.call(call, shell=True)  
 
+def compile_all_results (scenarios, cause_count, dir='../data'):
+    """
+    Compiles the results across multiple scenarios produced by running run_on_cluster on each 
+    one into a single sv file. The specified directory must be where where the results of 
+    running run_on_cluster for each scenario are stored (each is a sub-directory named v0, v1, etc.)
+    and is also where the output from this function will be saved.    
+    """
+
+    models = []
+    causes = []
+    true_cf = []
+    true_std = []
+    mean_abs_err = []
+    median_abs_err = []
+    mean_rel_err = []
+    median_rel_err = []
+    mean_csmf_accuracy = []
+    median_csmf_accuracy = []
+    mean_coverage_bycause = []
+    mean_coverage = []
+    percent_total_coverage = []
+    scenario = []
+
+    for i in range(scenarios):
+        for j in ['bad_model', 'latent_dirichlet']: 
+            read = csv.reader(open('%s/v%s/%s_summary.csv' % (dir, i, j)))
+            read.next()
+            for row in read: 
+                models.append(row[0])
+                causes.append(row[1])
+                true_cf.append(row[2])
+                true_std.append(row[3])
+                mean_abs_err.append(row[4])
+                median_abs_err.append(row[5])
+                mean_rel_err.append(row[6])
+                median_rel_err.append(row[7])
+                mean_csmf_accuracy.append(row[8])
+                median_csmf_accuracy.append(row[9])
+                mean_coverage_bycause.append(row[10])
+                mean_coverage.append(row[11])
+                percent_total_coverage.append(row[12])
+                scenario.append(i)
+
+    all = pl.np.core.records.fromarrays([scenario, models, true_cf, true_std, causes, mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, 
+                                         mean_csmf_accuracy, median_csmf_accuracy, mean_coverage_bycause, mean_coverage, percent_total_coverage], 
+                                        names=['scenario', 'model', 'true_cf', 'true_std', 'cause', 'mean_abs_err', 'median_abs_err', 
+                                         'mean_rel_err', 'median_rel_err', 'mean_csmf_accuracy', 'median_csmf_accuracy', 
+                                         'mean_covearge_bycause', 'mean_coverage', 'percent_total_coverage'])
+    pl.rec2csv(all, fname='%s/all_summary_metrics.csv' % (dir))  
+    
+def run_all_scenarios (truth, reps, dir='../data'): 
+    """
+    Runs run_on_cluster for each set of true cause fraction and standard deviation provided. This 
+    function takes a list of pairs of lists, with the first element of each pair specifying the 
+    true cause fractions and the second element of each pair specifying the corresponding 
+    true standard deviations. This function creates a series of folders (one for each item in
+    'truth') inside the specified directory.
+    """
+    
+    scenarios = int(pl.shape(truth)[0])
+    cause_count = int(pl.shape(truth)[2])
+    
+    all_names = []
+    for i in range(scenarios): 
+        run_on_cluster(dir='%s/v%s' % (dir, i), true_cf = truth[i][0], true_std = truth[i][1], reps=reps, tag=str(i))
+        all_names.append('cc%s_comb' % (i))
+        
+    hold_string = '-hold_jid %s ' % ','.join(all_names)
+    call = 'qsub -cwd %s -N cc_compile cluster_shell.sh cluster_compile.py %i %i "%s"' % (hold_string, scenarios, cause_count, dir)
+    subprocess.call(call, shell=True)
+
+    
 
 
 
