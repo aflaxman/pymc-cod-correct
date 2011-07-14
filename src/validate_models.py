@@ -49,7 +49,7 @@ def validate_once(true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.0], true_std = 0.01*pl
     """ 
     
     # generate simulation data
-    X = data.sim_data_for_validation(1000, 10, true_cf, true_std)
+    X = data.sim_data_for_validation(10, 2, true_cf, true_std)
 
     # fit bad model, calculate 95% HPD region and fit metrics 
     bad_model = models.bad_model(X)
@@ -131,14 +131,14 @@ def clean_up(model, dir, reps):
     for i in range(reps):
         os.remove('%s/metrics_%s_%i.csv' % (dir, model, i))
 
-def run_all_sequentially(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.01], reps=5): 
+def run_all_sequentially(dir='../data', true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.0], true_std = 0.01*pl.ones(3), reps=5): 
     """
     Runs validate_once multiple times (as sepcified by reps) for the given true_cf and 
     true_std. Combines the output and cleans up the temp files. This is all accomplished
     sequentially on the local machine. 
     """
 
-    T, J = true_cf.shape()
+    T, J = pl.array(true_cf).shape
     if os.path.exists(dir) == False: os.mkdir(dir)
     
     # repeatedly run validate_once and save output 
@@ -153,7 +153,7 @@ def run_all_sequentially(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01,
     clean_up('bad_model', dir, reps)
     clean_up('latent_dirichlet', dir, reps)
 
-def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01, 0.01], reps=5, tag=''):
+def run_on_cluster(dir='../data', true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.0], true_std = 0.01*pl.ones(3), reps=5, tag=''):
     """
     Runs validate_once multiple times (as specified by reps) for the given true_cf and 
     true_std. Combines the output and cleans up the temp files. This accomplished in 
@@ -165,12 +165,11 @@ def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01,
     conflicts between jobs with the same name. 
     """
 
-    T, J = true_cf.shape()    
+    T, J = pl.array(true_cf).shape  
     if os.path.exists(dir) == False: os.mkdir(dir)
 
     # write true_cf and true_std to file
-    truth = pl.np.core.records.fromarrays([true_cf, true_std], names=['true_cf', 'true_std'])
-    pl.rec2csv(truth, '%s/truth.csv' % (dir))    
+    data.rec2csv_2d(pl.vstack((true_std, true_cf)), '%s/truth.csv' % (dir))
     
     # submit all individual jobs to retrieve true_cf and true_std and run validate_once
     all_names = [] 
@@ -185,7 +184,7 @@ def run_on_cluster(dir='../data', true_cf=[0.3, 0.3, 0.4], true_std=[0.01, 0.01,
     call = 'qsub -cwd %s -N cc%s_comb cluster_shell.sh cluster_validate_combine.py %i "%s"' % (hold_string, tag, reps, dir)
     subprocess.call(call, shell=True)  
 
-def compile_all_results (scenarios, cause_count, dir='../data'):
+def compile_all_results (scenarios, dir='../data'):
     """
     Compiles the results across multiple scenarios produced by running run_on_cluster on each 
     one into a single sv file. The specified directory must be where where the results of 
@@ -195,6 +194,7 @@ def compile_all_results (scenarios, cause_count, dir='../data'):
 
     models = []
     causes = []
+    time = []
     true_cf = []
     true_std = []
     mean_abs_err = []
@@ -215,45 +215,46 @@ def compile_all_results (scenarios, cause_count, dir='../data'):
             for row in read: 
                 models.append(row[0])
                 causes.append(row[1])
-                true_cf.append(row[2])
-                true_std.append(row[3])
-                mean_abs_err.append(row[4])
-                median_abs_err.append(row[5])
-                mean_rel_err.append(row[6])
-                median_rel_err.append(row[7])
-                mean_csmf_accuracy.append(row[8])
-                median_csmf_accuracy.append(row[9])
-                mean_coverage_bycause.append(row[10])
-                mean_coverage.append(row[11])
-                percent_total_coverage.append(row[12])
+                time.append(row[2])
+                true_cf.append(row[3])
+                true_std.append(row[4])
+                mean_abs_err.append(row[5])
+                median_abs_err.append(row[6])
+                mean_rel_err.append(row[7])
+                median_rel_err.append(row[8])
+                mean_csmf_accuracy.append(row[9])
+                median_csmf_accuracy.append(row[10])
+                mean_coverage_bycause.append(row[11])
+                mean_coverage.append(row[12])
+                percent_total_coverage.append(row[13])
                 scenario.append(i)
 
-    all = pl.np.core.records.fromarrays([scenario, models, true_cf, true_std, causes, mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, 
+    all = pl.np.core.records.fromarrays([scenario, models, time, true_cf, true_std, causes, mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, 
                                          mean_csmf_accuracy, median_csmf_accuracy, mean_coverage_bycause, mean_coverage, percent_total_coverage], 
-                                        names=['scenario', 'model', 'true_cf', 'true_std', 'cause', 'mean_abs_err', 'median_abs_err', 
+                                        names=['scenario', 'model', 'time', 'true_cf', 'true_std', 'cause', 'mean_abs_err', 'median_abs_err', 
                                          'mean_rel_err', 'median_rel_err', 'mean_csmf_accuracy', 'median_csmf_accuracy', 
                                          'mean_covearge_bycause', 'mean_coverage', 'percent_total_coverage'])
     pl.rec2csv(all, fname='%s/all_summary_metrics.csv' % (dir))  
     
-def run_all_scenarios (truth, reps, dir='../data'): 
+def run_all_scenarios (truths, reps, dir='../data'): 
     """
     Runs run_on_cluster for each set of true cause fraction and standard deviation provided. This 
     function takes a list of pairs of lists, with the first element of each pair specifying the 
     true cause fractions and the second element of each pair specifying the corresponding 
     true standard deviations. This function creates a series of folders (one for each item in
-    'truth') inside the specified directory.
+    'truths') inside the specified directory.
     """
-    
-    scenarios = int(pl.shape(truth)[0])
-    cause_count = int(pl.shape(truth)[2])
+
+    scenarios = int(len(truths))
+    J = len(truths[0][1])
     
     all_names = []
     for i in range(scenarios): 
-        run_on_cluster(dir='%s/v%s' % (dir, i), true_cf = truth[i][0], true_std = truth[i][1], reps=reps, tag=str(i))
+        run_on_cluster(dir='%s/v%s' % (dir, i), true_cf = truths[i][0], true_std = truths[i][1], reps=reps, tag=str(i))
         all_names.append('cc%s_comb' % (i))
         
     hold_string = '-hold_jid %s ' % ','.join(all_names)
-    call = 'qsub -cwd %s -N cc_compile cluster_shell.sh cluster_compile.py %i %i "%s"' % (hold_string, scenarios, cause_count, dir)
+    call = 'qsub -cwd %s -N cc_compile cluster_shell.sh cluster_compile.py %i %i "%s"' % (hold_string, scenarios, J, dir)
     subprocess.call(call, shell=True)
 
     

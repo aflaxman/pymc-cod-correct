@@ -25,7 +25,7 @@ def csv2array(fname):
     read.next()
     for row in read: 
         Y.append(row)
-    return pl.array(Y)
+    return pl.array(Y, dtype='f')
 
 def logit_normal_draw(cf_mean, std, N, J):
     std = pl.array(std)
@@ -187,7 +187,7 @@ def sim_cod_data(N, cf_rec):
     J = len(cf_mean)
     return logit_normal_draw(cf_mean, std, N, J)
 
-def sim_data_for_validation(N, T,
+def sim_data_for_validation(N,
                             true_cf=[[0.1, 0.3, 0.6],
                                        [0.2, 0.3, 0.5]],
                             true_std=[0.05, 0.05, 0.05]):

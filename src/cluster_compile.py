@@ -9,4 +9,4 @@ scenarios = int(sys.argv[1])
 cause_count = int(sys.argv[2])
 dir = str(sys.argv[3])
 
-validate_models.compile_all_results(scenarios, cause_count, dir)
+validate_models.compile_all_results(scenarios, dir)
