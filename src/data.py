@@ -25,7 +25,7 @@ def csv2array(fname):
     read.next()
     for row in read: 
         Y.append(row)
-    return pl.array(Y, dtype='f')
+    return pl.array(Y)
 
 def logit_normal_draw(cf_mean, std, N, J):
     std = pl.array(std)
@@ -204,9 +204,6 @@ def sim_data_for_validation(N, T,
     -----
     N draws from an 'estimated' distribution for the specified causes 
     """
-
-    assert pl.allclose(sum(true_csmf), 1), 'The sum of elements of true_csmf must equal 1' 
-    assert len(true_csmf)==len(true_std), 'The length of true_csmf and true_std must be the same'
 
     est_csmf = sim_data(1, true_csmf, true_std)[0]
     est_error = est_csmf - true_csmf
