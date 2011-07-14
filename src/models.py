@@ -22,7 +22,7 @@ def latent_dirichlet(X):
         alpha_t = []
         for j in range(J):
             mu_alpha_tj = pl.mean(X[:,t,j]) / pl.mean(X[:,t,:], 0).sum()
-            alpha_t.append(mc.Normal('alpha_%d_%d'%(t,j), mu=0., tau=5., value=pl.log(mu_alpha_tj)))
+            alpha_t.append(mc.Normal('alpha_%d_%d'%(t,j), mu=0., tau=1., value=pl.log(mu_alpha_tj)))
         alpha.append(alpha_t)
 
     @mc.deterministic
@@ -32,7 +32,7 @@ def latent_dirichlet(X):
             pi[t] = pl.reshape(pl.exp(alpha[t]), J) / pl.sum(pl.exp(alpha[t]))
         return pi
 
-    beta = [mc.Normal('beta_%d'%t, mu=0., tau=.05**-2, value=pl.zeros(J)) for t in range(T)]
+    beta = [mc.Normal('beta_%d'%t, mu=0., tau=.005**-2, value=pl.zeros(J)) for t in range(T)]
 
     sigma = [[mc.Normal('sigma_%d_%d'%(t,j), mu=X[:,t,j].std(), tau=.01**-2,
                       value=X[:,t,j].std()) for j in range(J)] for t in range(T)]
@@ -41,8 +41,8 @@ def latent_dirichlet(X):
     def X_obs(pi=pi, beta=beta, sigma=sigma, value=X):
         logp = pl.zeros(N)
         for n in range(N):
-            logp[n] = mc.normal_like(pl.array(value[n]-beta).ravel(),
-                                     pl.array(pi).ravel(),
+            logp[n] = mc.normal_like(pl.array(value[n]).ravel(),
+                                     pl.array(pi+beta).ravel(),
                                      pl.array(sigma).ravel()**-2)
         return mc.flib.logsum(logp - pl.log(N))
     
