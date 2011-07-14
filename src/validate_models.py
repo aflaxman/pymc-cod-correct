@@ -49,7 +49,7 @@ def validate_once(true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.0], true_std = 0.01*pl
     """ 
     
     # generate simulation data
-    X = data.sim_data_for_validation(10, 2, true_cf, true_std)
+    X = data.sim_data_for_validation(1000, true_cf, true_std)
 
     # fit bad model, calculate 95% HPD region and fit metrics 
     bad_model = models.bad_model(X)
