@@ -68,7 +68,7 @@ def fit_latent_dirichlet(X, iter=1000, burn=500, thin=5):
 
     for alpha_t, sigma_t in zip(m.alpha, m.sigma):
         m.use_step_method(mc.AdaptiveMetropolis, alpha_t)
-        m.use_step_method(mc.AdaptiveMetropolis, sigma_t)
+        #m.use_step_method(mc.AdaptiveMetropolis, sigma_t)
     m.use_step_method(mc.AdaptiveMetropolis, m.beta)
 
     m.sample(iter, burn, thin, verbose=1)
