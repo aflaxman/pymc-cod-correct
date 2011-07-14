@@ -37,42 +37,41 @@ def logit_normal_draw(cf_mean, std, N, J):
         Y = mc.invlogit(X)
     return Y
 
-def sim_data(N, true_csmf=[[.3, .6, .1],
+def sim_data(N, true_cf=[[.3, .6, .1],
                            [.3, .5, .2]],
-             true_csmf_sd=[.2, .05, .05],
+             true_std=[.2, .05, .05],
              sum_to_one=True):
     """ 
     Create an NxTxJ matrix of simulated data (T is determined by the length 
-    of true_csmf, J by the length of the elements of true_csmf). 
+    of true_cf, J by the length of the elements of true_cf). 
     
-    true_csmf - a list of lists of true cause fractions (each must sum to one)
-    true_csmf_sd - a list of the standard deviations corresponding to the true csmf's
+    true_cf - a list of lists of true cause fractions (each must sum to one)
+    true_std - a list of the standard deviations corresponding to the true csmf's
     """
 
     if sum_to_one == True: 
-        assert pl.allclose(pl.sum(true_csmf, 1), 1), 'The sum of elements of true_csmf must equal 1' 
-        assert len(true_csmf[0])==len(true_csmf_sd), 'The length of true_csmf[0] and true_csmf_sd must be the same'
-    T = len(true_csmf)
-    J = len(true_csmf[0])
+        assert pl.allclose(pl.sum(true_cf, 1), 1), 'The sum of elements of true_cf must equal 1' 
+        assert len(true_cf[0])==len(true_std), 'The length of true_cf[0] and true_std must be the same'
+    T = len(true_cf)
+    J = len(true_cf[0])
 
-    ## transform the mean and sd to logit space
+    ## transform the mean and std to logit space
     ## NOTE: we use the transformed standard deviation for the first csmf on the list for everything
-    transformed_sd = []
-    for pi_i, sigma_pi_i in zip(true_csmf[0], true_csmf_sd):
-        transformed_sd.append( ((1/(pi_i*(pi_i-1)))**2 * sigma_pi_i**2)**0.5 )
+    transformed_std = []
+    for pi_i, sigma_pi_i in zip(true_cf[0], true_std):
+        transformed_std.append( ((1/(pi_i*(pi_i-1)))**2 * sigma_pi_i**2)**0.5 )
         
     ## draw from distribution
     perturbation = [mc.rnormal(mu=0,
-                               tau=pl.array(transformed_sd)**-2) for n in range(N)]
+                               tau=pl.array(transformed_std)**-2) for n in range(N)]
 
     result = pl.zeros([N, T, J])
     for t in range(T):
         for n in range(N):
-            result[n, t, :] = mc.invlogit(mc.logit(true_csmf[t]) + perturbation[n])
+            result[n, t, :] = mc.invlogit(mc.logit(true_cf[t]) + perturbation[n])
 
     return result
             
-
 def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female', keep_year='2010'):
     """ Get data from CoDMod output on J drive
     Input 
@@ -188,15 +187,15 @@ def sim_cod_data(N, cf_rec):
     J = len(cf_mean)
     return logit_normal_draw(cf_mean, std, N, J)
 
-def sim_data_for_validation(N, T,
-                            true_csmf=[[0.1, 0.3, 0.6],
+def sim_data_for_validation(N,
+                            true_cf=[[0.1, 0.3, 0.6],
                                        [0.2, 0.3, 0.5]],
                             true_std=[0.05, 0.05, 0.05]):
     """
     Input
     -----
-    true_csmf - the true cause fractions
-    std - the standard deviation associated with the cause fractions: this is meant to 
+    true_cf - the true cause fractions
+    true_std - the standard deviation associated with the cause fractions: this is meant to 
         capture how variable estimates of the true cause fraction will be (i.e. causes 
         that are more difficult to estimate will be more variable and therefore will 
         have greater uncertainty)
@@ -206,15 +205,12 @@ def sim_data_for_validation(N, T,
     N draws from an 'estimated' distribution for the specified causes 
     """
 
-    assert pl.allclose(sum(true_csmf), 1), 'The sum of elements of true_csmf must equal 1' 
-    assert len(true_csmf)==len(true_std), 'The length of true_csmf and true_csmf_sd must be the same'
-
-    est_csmf = sim_data(1, true_csmf, true_std)[0]
-    est_error = est_csmf - true_csmf
+    est_cf = sim_data(1, true_cf, true_std)[0]
+    est_error = est_cf - true_cf
 
     est_std = true_std # TODO: consider less correlated relationship
     
-    sims = sim_data(N, est_csmf, est_std, sum_to_one=False)
+    sims = sim_data(N, est_cf, est_std, sum_to_one=False)
     return sims
     
 
