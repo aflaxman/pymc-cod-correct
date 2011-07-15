@@ -45,26 +45,31 @@ def calc_quality_metrics(true_cf, true_std, preds):
 def validate_once(true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.0], true_std = 0.01*pl.ones(3), save=False, dir='', i=0):
     """
     Generate a set of simulated estimates for the provided true cause fractions; Fit the bad model and 
-    the latent dirichlet model to this simulated data and calculate quality metrics. 
+    the latent simplex model to this simulated data and calculate quality metrics. 
     """ 
     
     # generate simulation data
     X = data.sim_data_for_validation(1000, true_cf, true_std)
 
-    # fit bad model, calculate 95% HPD region and fit metrics 
+    # fit bad model, calculate fit metrics 
     bad_model = models.bad_model(X)
     bad_model_metrics = calc_quality_metrics(true_cf, true_std, bad_model)
     
-    # fit latent dirichlet model, calculate 95% HPD region and fit metrics 
+    # fit latent simplex model, calculate fit metrics 
     m, latent_simplex = models.fit_latent_simplex(X)
     latent_simplex_metrics = calc_quality_metrics(true_cf, true_std, latent_simplex)
-
+    
+    # fit other version of latent simplex model, calculate fit metrics
+    m, latent_simplex_v2 = models.fit_latent_simplex_v2(X)
+    latent_simplex_v2_metrics = calc_quality_metrics(true_cf, true_std, latent_simplex_v2)
+    
     # either write results to disk or return them 
     if save: 
         pl.rec2csv(bad_model_metrics, '%s/metrics_bad_model_%i.csv' % (dir, i)) 
         pl.rec2csv(latent_simplex_metrics, '%s/metrics_latent_simplex_%i.csv' % (dir, i))
+        pl.rec2csv(latent_simplex_v2_metrics, '%s/metrics_latent_simplex_v2_%i.csv' % (dir, i))
     else: 
-        return bad_model_metrics, latent_simplex_metrics
+        return bad_model_metrics, latent_simplex_metrics, latent_simplex_v2_metrics
 
 def combine_output(J, T, model, dir, reps, save=False):
     """
@@ -73,50 +78,50 @@ def combine_output(J, T, model, dir, reps, save=False):
     for each. 
     """
 
-	cause = pl.zeros(J*T, dtype='f').view(pl.recarray)
-	time = pl.zeros(J*T, dtype='f').view(pl.recarray)
-	abs_err = pl.zeros(J*T, dtype='f').view(pl.recarray) 
-	rel_err = pl.zeros(J*T, dtype='f').view(pl.recarray)
-	coverage = pl.zeros(J*T, dtype='f').view(pl.recarray)
-	csmf_accuracy = pl.zeros(J*T, dtype='f').view(pl.recarray)
+    cause = pl.zeros(J*T, dtype='f').view(pl.recarray)
+    time = pl.zeros(J*T, dtype='f').view(pl.recarray)
+    abs_err = pl.zeros(J*T, dtype='f').view(pl.recarray) 
+    rel_err = pl.zeros(J*T, dtype='f').view(pl.recarray)
+    coverage = pl.zeros(J*T, dtype='f').view(pl.recarray)
+    csmf_accuracy = pl.zeros(J*T, dtype='f').view(pl.recarray)
 
-	for i in range(reps): 
-		metrics = pl.csv2rec('%s/metrics_%s_%i.csv' % (dir, model, i))
-		vcause = pl.vstack((cause, metrics.cause))
-		time = pl.vstack((time, metrics.time))
-		abs_err = pl.vstack((abs_err, metrics.abs_err))
-		rel_err = pl.vstack((rel_err, metrics.rel_err))
-		coverage = pl.vstack((coverage, metrics.coverage))
-		csmf_accuracy = pl.vstack((csmf_accuracy, metrics.csmf_accuracy))
-    
+    for i in range(reps): 
+        metrics = pl.csv2rec('%s/metrics_%s_%i.csv' % (dir, model, i))
+        cause = pl.vstack((cause, metrics.cause))
+        time = pl.vstack((time, metrics.time))
+        abs_err = pl.vstack((abs_err, metrics.abs_err))
+        rel_err = pl.vstack((rel_err, metrics.rel_err))
+        coverage = pl.vstack((coverage, metrics.coverage))
+        csmf_accuracy = pl.vstack((csmf_accuracy, metrics.csmf_accuracy))
+
     cause = cause[1:,]
     time = time[1:,]    
     abs_err = abs_err[1:,]
     rel_err = rel_err[1:,]
     coverage = coverage[1:,]
     csmf_accuracy = csmf_accuracy[1:,]
-    
+
     mean_abs_err = abs_err.mean(0)
     median_abs_err =  pl.median(abs_err, 0)
     mean_rel_err = rel_err.mean(0)
     median_rel_err = pl.median(rel_err, 0)
     mean_csmf_accuracy = csmf_accuracy.mean(0)
-    vmedian_csmf_accuracy = pl.median(csmf_accuracy, 0)
+    median_csmf_accuracy = pl.median(csmf_accuracy, 0)
     mean_coverage_bycause = coverage.mean(0)
     mean_coverage = coverage.reshape(reps, T, J).mean(0).mean(1)
     percent_total_coverage = (coverage.reshape(reps, T, J).sum(2)==3).mean(0)
     mean_coverage = pl.array([[i for j in range(J)] for i in mean_coverage]).ravel()
     percent_total_coverage = pl.array([[i for j in range(J)] for i in percent_total_coverage]).ravel()
-    
+
     models = pl.array([[model for j in range(J)] for i in range(T)]).ravel()
     true_cf = metrics.true_cf
     true_std = metrics.true_std
-    
+
     all = pl.np.core.records.fromarrays([models, cause[0], time[0], true_cf, true_std, mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, 
                                          mean_csmf_accuracy, median_csmf_accuracy, mean_coverage_bycause, mean_coverage, percent_total_coverage], 
                                         names=['model', 'cause', 'time', 'true_cf', 'true_std', 'mean_abs_err', 'median_abs_err', 
                                          'mean_rel_err', 'median_rel_err', 'mean_csmf_accuracy', 'median_csmf_accuracy', 
-                                         'mean_covearge_bycause', 'mean_coverage', 'percent_total_coverage'])
+                                         'mean_covearge_bycause', 'mean_coverage', 'percent_total_coverage'])   
     
     if save: 
         pl.rec2csv(all, '%s/%s_summary.csv' % (dir, model)) 
@@ -148,10 +153,12 @@ def run_all_sequentially(dir='../data', true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.
     # combine all output across repetitions 
     combine_output(J, T, 'bad_model', dir, reps, True)
     combine_output(J, T, 'latent_simplex', dir, reps, True)  
+    combine_output(J, T, 'latent_simplex_v2', dir, reps, True)  
     
     # delete intermediate files 
     clean_up('bad_model', dir, reps)
     clean_up('latent_simplex', dir, reps)
+    clean_up('latent_simplex_v2', dir, reps)
 
 def run_on_cluster(dir='../data', true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.0], true_std = 0.01*pl.ones(3), reps=5, tag=''):
     """
@@ -209,7 +216,7 @@ def compile_all_results (scenarios, dir='../data'):
     scenario = []
 
     for i in range(scenarios):
-        for j in ['bad_model', 'latent_simplex']: 
+        for j in ['bad_model', 'latent_simplex', 'latent_simplex_v2']: 
             read = csv.reader(open('%s/v%s/%s_summary.csv' % (dir, i, j)))
             read.next()
             for row in read: 

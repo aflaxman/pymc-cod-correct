@@ -17,7 +17,9 @@ T, J = true_cf.shape
 
 validate_models.combine_output(J, T, 'bad_model', dir, reps, True)
 validate_models.combine_output(J, T, 'latent_simplex', dir, reps, True)
+validate_models.combine_output(J, T, 'latent_simplex_v2', dir, reps, True)
 
 validate_models.clean_up('bad_model', dir, reps)
 validate_models.clean_up('latent_simplex', dir, reps)
+validate_models.clean_up('latent_simplex_v2', dir, reps)
 os.remove('%s/truth.csv' %dir)
