@@ -73,51 +73,51 @@ def combine_output(J, T, model, dir, reps, save=False):
     for each. 
     """
 
-    cause = pl.zeros(J*T, dtype='f').view(pl.recarray)
-    time = pl.zeros(J*T, dtype='f').view(pl.recarray)
-    abs_err = pl.zeros(J*T, dtype='f').view(pl.recarray) 
-    rel_err = pl.zeros(J*T, dtype='f').view(pl.recarray)
-    coverage = pl.zeros(J*T, dtype='f').view(pl.recarray)
-    csmf_accuracy = pl.zeros(J*T, dtype='f').view(pl.recarray)
+	cause = pl.zeros(J*T, dtype='f').view(pl.recarray)
+	time = pl.zeros(J*T, dtype='f').view(pl.recarray)
+	abs_err = pl.zeros(J*T, dtype='f').view(pl.recarray) 
+	rel_err = pl.zeros(J*T, dtype='f').view(pl.recarray)
+	coverage = pl.zeros(J*T, dtype='f').view(pl.recarray)
+	csmf_accuracy = pl.zeros(J*T, dtype='f').view(pl.recarray)
 
-    for i in range(reps): 
-        metrics = pl.csv2rec('%s/metrics_%s_%i.csv' % (dir, model, i))
-        cause = pl.vstack((cause, metrics.cause))
-        time = pl.vstack((time, metrics.time))
-        abs_err = pl.vstack((abs_err, metrics.abs_err))
-        rel_err = pl.vstack((rel_err, metrics.rel_err))
-        coverage = pl.vstack((coverage, metrics.coverage))
-        csmf_accuracy = pl.vstack((csmf_accuracy, metrics.csmf_accuracy))
-        
+	for i in range(reps): 
+		metrics = pl.csv2rec('%s/metrics_%s_%i.csv' % (dir, model, i))
+		vcause = pl.vstack((cause, metrics.cause))
+		time = pl.vstack((time, metrics.time))
+		abs_err = pl.vstack((abs_err, metrics.abs_err))
+		rel_err = pl.vstack((rel_err, metrics.rel_err))
+		coverage = pl.vstack((coverage, metrics.coverage))
+		csmf_accuracy = pl.vstack((csmf_accuracy, metrics.csmf_accuracy))
+    
     cause = cause[1:,]
     time = time[1:,]    
     abs_err = abs_err[1:,]
     rel_err = rel_err[1:,]
     coverage = coverage[1:,]
     csmf_accuracy = csmf_accuracy[1:,]
-
+    
     mean_abs_err = abs_err.mean(0)
     median_abs_err =  pl.median(abs_err, 0)
     mean_rel_err = rel_err.mean(0)
     median_rel_err = pl.median(rel_err, 0)
     mean_csmf_accuracy = csmf_accuracy.mean(0)
-    median_csmf_accuracy = pl.median(csmf_accuracy, 0)
+    vmedian_csmf_accuracy = pl.median(csmf_accuracy, 0)
     mean_coverage_bycause = coverage.mean(0)
     mean_coverage = coverage.reshape(reps, T, J).mean(0).mean(1)
-    percent_total_coverage = mean_coverage==1
+    percent_total_coverage = (coverage.reshape(reps, T, J).sum(2)==3).mean(0)
     mean_coverage = pl.array([[i for j in range(J)] for i in mean_coverage]).ravel()
     percent_total_coverage = pl.array([[i for j in range(J)] for i in percent_total_coverage]).ravel()
-
+    
     models = pl.array([[model for j in range(J)] for i in range(T)]).ravel()
     true_cf = metrics.true_cf
     true_std = metrics.true_std
-
+    
     all = pl.np.core.records.fromarrays([models, cause[0], time[0], true_cf, true_std, mean_abs_err, median_abs_err, mean_rel_err, median_rel_err, 
                                          mean_csmf_accuracy, median_csmf_accuracy, mean_coverage_bycause, mean_coverage, percent_total_coverage], 
                                         names=['model', 'cause', 'time', 'true_cf', 'true_std', 'mean_abs_err', 'median_abs_err', 
                                          'mean_rel_err', 'median_rel_err', 'mean_csmf_accuracy', 'median_csmf_accuracy', 
                                          'mean_covearge_bycause', 'mean_coverage', 'percent_total_coverage'])
-
+    
     if save: 
         pl.rec2csv(all, '%s/%s_summary.csv' % (dir, model)) 
     else: 
