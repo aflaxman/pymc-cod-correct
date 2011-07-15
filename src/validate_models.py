@@ -56,15 +56,15 @@ def validate_once(true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.0], true_std = 0.01*pl
     bad_model_metrics = calc_quality_metrics(true_cf, true_std, bad_model)
     
     # fit latent dirichlet model, calculate 95% HPD region and fit metrics 
-    m, latent_dirichlet = models.fit_latent_dirichlet(X)
-    latent_dirichlet_metrics = calc_quality_metrics(true_cf, true_std, latent_dirichlet)
+    m, latent_simplex = models.fit_latent_simplex(X)
+    latent_simplex_metrics = calc_quality_metrics(true_cf, true_std, latent_simplex)
 
     # either write results to disk or return them 
     if save: 
         pl.rec2csv(bad_model_metrics, '%s/metrics_bad_model_%i.csv' % (dir, i)) 
-        pl.rec2csv(latent_dirichlet_metrics, '%s/metrics_latent_dirichlet_%i.csv' % (dir, i))
+        pl.rec2csv(latent_simplex_metrics, '%s/metrics_latent_simplex_%i.csv' % (dir, i))
     else: 
-        return bad_model_metrics, latent_dirichlet_metrics
+        return bad_model_metrics, latent_simplex_metrics
 
 def combine_output(J, T, model, dir, reps, save=False):
     """
@@ -147,11 +147,11 @@ def run_all_sequentially(dir='../data', true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.
 
     # combine all output across repetitions 
     combine_output(J, T, 'bad_model', dir, reps, True)
-    combine_output(J, T, 'latent_dirichlet', dir, reps, True)  
+    combine_output(J, T, 'latent_simplex', dir, reps, True)  
     
     # delete intermediate files 
     clean_up('bad_model', dir, reps)
-    clean_up('latent_dirichlet', dir, reps)
+    clean_up('latent_simplex', dir, reps)
 
 def run_on_cluster(dir='../data', true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.0], true_std = 0.01*pl.ones(3), reps=5, tag=''):
     """
@@ -209,7 +209,7 @@ def compile_all_results (scenarios, dir='../data'):
     scenario = []
 
     for i in range(scenarios):
-        for j in ['bad_model', 'latent_dirichlet']: 
+        for j in ['bad_model', 'latent_simplex']: 
             read = csv.reader(open('%s/v%s/%s_summary.csv' % (dir, i, j)))
             read.next()
             for row in read: 
