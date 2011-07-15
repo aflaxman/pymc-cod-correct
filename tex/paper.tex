@@ -79,8 +79,6 @@
 %\def\includegraphic{}
 %\def\includegraphics{}
 
-
-
 \setlength{\topmargin}{0.0cm}
 \setlength{\textheight}{21.5cm}
 \setlength{\oddsidemargin}{0cm} 
@@ -149,14 +147,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-\author{Charles A Darwin\correspondingauthor$^{1,2}$%
-       \email{Charles A Darwin\correspondingauthor - charles@londonzoo.co.uk}%
-      \and
-         Jane E Doe\correspondingauthor$^2$%
-         \email{Jane E Doe\correspondingauthor - jane.e.doe@cambridge.co.uk}
-       and 
-         John RS Smith$^3$%
-         \email{John RS Smith - john.RS.Smith@cambridge.co.uk}%
+\author{Abraham D. Flaxman\correspondingauthor$^1$%
+       \email{Abraham D. Flaxman\correspondingauthor - abie@uw.edu}
+       and
+        Laura Dwyer-Lindgren\correspondingauthor$^1$%
+        \email{Laura Dwyer-Lindgren\correspondingauthor - ladwyer@uw.edu}
       }
       
 
@@ -167,11 +162,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \address{%
-    \iid(1)Life Sciences Department, Kings College London, Cornwall House,%
-        Waterloo Road, London, UK\\
-    \iid(2)Department of Zoology, Cambridge, Waterloo Road, London, UK\\
-    \iid(3)Marine Ecology Department, Institute of Marine Sciences Kiel, %
-        D\"{u}sternbrooker Weg 20, 24105 Kiel, Germany
+    \iid(1)Institute for Health Metrics and Evaluation, University of Washington, Seattle, WA
 }%
 
 \maketitle
@@ -247,9 +238,6 @@
 %%                                          %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
-
 %%%%%%%%%%%%%%%%
 %% Background %%
 %%
@@ -263,8 +251,17 @@
 %% statement of what is being reported in the article.
 
 \section*{Background}
- Text for this section.\cite{koon,oreg,khar,zvai,xjon,schn,pond,smith,marg,hunn,advi,koha,mouse}
+  (FIXME: need to talk about GBD here...different models for each cause...different levels in the
+  cause hierarchy).  Models for each cause are estimated separately, so there is no guarantee of 
+  consistency and the estimated cause fractions for any given country-sex-year do not necessarily 
+  sum to one. \pb
 
+  (FIXME: this would be where a review of the literature would be appropriate, had we done one.) \pb
+
+  A simulation environment was constructed to replicate important characteristics of 
+  the problem described.  We propose two models that take different approaches to predicting 
+  consistent cause fractions from inconsistent preliminary estimates.  These two models are then  
+  validated in the simulation environment and compared on a variety of metrics. \pb
 
 %%%%%%%%%%%%%%%%%%
 %% Methods
@@ -275,24 +272,76 @@
 %% including a power calculation if appropriate.
 
 \section*{Methods}
-  \subsection*{Statistical Model}
+  \subsection*{Simulation Environment}
+     Simulated cause fraction estimates are generated for 3 causes over a period of 4 years. 
+    (FIXME: the number of causes and the length of the time period could change). 'True' 
+    cause fractions are specified for each of the causes in each of the years. Additionally, 
+    a 'true' precision is specified for each cause fraction, and this is treated as 
+    constant over time (FIXME: should probably explain what this precision is supposed to 
+    be telling us about the cause fractions). A single draw from a normal distribution 
+    with mean 0 and precision equal to the true cause fraction precision is generated. 
+    This is added to the true cause fractions to imitate an unbiased preliminary estimate of the
+    true cause fractions. A set of 1000 draws from a normal distribution using this estimated
+    cause fraction as the mean and the true precision as the precision is taken as the
+    'data' for this simulation that will eventually be used in the modeling process. 
+    This procedure is repeated, resulting in 50 sets of simulated preliminary 
+    estimates for each specified set of cause fractions. All draws from normal distributions 
+    are carried out in logit space to guarantee that the resulting cause fractions are each
+    between zero and one. Both of the models described below are fit on each of the 50 sets 
+    of preliminary estimates for each specified cause fraction scenario. \pb
 
+    A variety of different scenarios are tested (FIXME: must decide on what the scenarios are
+    before I can describe them) \pb
+
+  \subsection*{Statistical Model}
+    Two models are proposed for estimating consistent cause fractions. The first takes an obvious
+    approach: all cause fractions are simply scaled by a factor equal to their sum: 
+    (FIXME: need to put some math here, i.e. the bad model)
+  \begin{align*}
+    math!
+  \end{align*}
+    For the simulated estimates described above, this is carried out individually for 
+    each simulation and then the mean estimate for each cause is taken as the final 
+    estimate for each cause fraction. The 95\% high probability density region (95\% hpd) 
+    is also calculated and used to generate estimates of the upper and lower bounds of 
+    the final cause fraction estimates. \pb
+
+    The second model proposed attempts to take into account differences in the estimated 
+    precision of the preliminary cause fraction estimates. Additionally, it explicitly 
+    takes into account correlation in these preliminary estimates over time (FIXME: this 
+    may not actually be true. Must understand the model better before writing about it). 
+    (FIXME: probably need a more thorough verbal description here of the model; also 
+    need to update the formula Abie typed below). 
   \begin{align*}
     \Pr[Y | \pi, \tau] &= \sum_{i=1}^N \frac{1}{N} \Pr[Y_i | \pi, \tau]\\
     Y_i | \pi, \tau &\sim N(\pi, \tau)\\
     \pi &\sim \Dirichlet(1) \\
     \tau &\sim \Uniform[0, \infty) \\
   \end{align*}
+    (FIXME: need to talk about how the model is fit). The mean of pi across all retained 
+    iterations of the MCMC chain is taken as the final estimate of the cause fractions 
+    and the 95\% hpd is calculated from all retained iterations. \pb
 
+  \subsection*{Quality Metrics}
+    The final cause fraction estimates from each model are compared to the known true cause 
+    fractions and the absolute error, relative error, and coverage (i.e. the true estimate
+    falls between the upper and lower bounds) are calculated for each cause and each 
+    of the 50 sets of estimates. The mean and median absolute error, mean and 
+    median relative error, and mean coverage are estimated by cause across all sets of 
+    estimates. Mean coverage is also estimated for all causes and the 
+    percent of times across all 50 sets of estimates that all causes are covered (full 
+    coverage) is also computed. One additional metric, cause specific mortality fraction 
+    accuracy (CSMF accuracy) is also computed for each of the 50 sets of estimates 
+    according to the following formula: 
+  \begin{align*}
+    1-\sum \left | CSMF_{pred} - CSMF_{true} \right |/(2*(1-min(cf_{true})))
+  \end{align*}
+    The mean and median CSMF accuracy are then computed across all sets of estimates. \pb 
 
-  \subsection*{Another methods sub-heading for this section}
-    Text for this sub-section \ldots
+    (FIXME: need to remove some of the metrics here that we aren't ultimately going to 
+    use and also need to describe why each one of the ones that remain are interesting 
+    and necessary given the others) \pb 
 
-  \subsection*{Yet another sub-heading for this section}
-    Text for this sub-section \ldots
-
-
- 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Results  %%
 %%
@@ -303,48 +352,12 @@
 %% sections may also be broken into subsections with short,
 %% informative headings.
 
-\section*{Results}
+\section*{Results/Discussion}
   \subsection*{Results sub-heading}
-    \subsubsection*{This is a sub-sub-heading}
-      Sub-sub-sub-headings are made with the \textsl{\\subsubsection} command. \pb
-      pb at end of lines ensures correct paragraph spacing.\pb
-	  Text for this sub-sub-section \ldots
-    \subsubsection*{Another sub-sub-sub-heading}
-      Text for this sub-sub-section \ldots
 
   \subsection*{Another results sub-heading}
-    Text for this sub-section \ldots
 
   \subsection*{Yet another results sub-heading}
-    Text for this sub-section.  More results \ldots
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Discussion
-%%
-%% The Results and Discussion may be combined into a single section or
-%% presented separately. Results of statistical analysis should
-%% include, where appropriate, relative and absolute risks or risk
-%% reductions, and confidence intervals. The results and discussion
-%% sections may also be broken into subsections with short,
-%% informative headings.
-
-\section*{Discussion}
-  \subsection*{Discussion sub-heading}
-    \subsubsection*{This is a sub-sub-heading}
-      Sub-sub-sub-headings are made with the \textsl{\\subsubsection} command. \pb
-      pb at end of lines ensures correct paragraph spacing.\pb
-	  Text for this sub-sub-section \ldots
-    \subsubsection*{Another sub-sub-sub-heading}
-      Text for this sub-sub-section \ldots
-
-  \subsection*{Another discussion sub-heading}
-    Text for this sub-section \ldots
-
-  \subsection*{Yet another discussion sub-heading}
-    Text for this sub-section.  More results \ldots
-
-
-    
 
 %%%%%%%%%%%%%%%%%%%%%%
 %% This should state clearly the main conclusions of the research and
@@ -352,9 +365,7 @@
 %% illustrations may be included.
 
 \section*{Conclusions}
-  Text for this section \ldots
-
-
+The good model is better than the bad model! Hurray!!! \pb
   
 %%%%%%%%%%%%%%%%%%%%%%
 %% If abbreviations are used in the text, either they should be
@@ -363,10 +374,6 @@
 %% authors' contributions.
 
 \section*{List of abbreviations used}
-  Text for this section \ldots
-
-
-  
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% A competing interest exists when your interpretation of data or
@@ -415,7 +422,6 @@
 %% competing interest, please discuss it with the editorial office.
 
 \section*{Competing interests }
-    Text for this section \ldots
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 
@@ -452,8 +458,6 @@
 %% provided only general support.
 
 \section*{Authors contributions}
-    Text for this section \ldots
-
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% You may choose to use this section to include any relevant
@@ -466,9 +470,6 @@
 %% be used to describe any competing interests.
 
 \section*{Authors information}
-    Text for this section \ldots
-
-    
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Please acknowledge anyone who contributed towards the study by
@@ -495,9 +496,6 @@
 
 \section*{Acknowledgements and Funding}
   \ifthenelse{\boolean{publ}}{\small}{}
-  Text for this section \ldots
-
-
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                  The Bibliography                       %%
