@@ -13,7 +13,7 @@ def bad_model(X):
         Y[:,t,:] = X[:,t,:] / pl.outer(pl.array(X[:,t,:]).sum(axis=1), pl.ones(J))
     return Y.view(pl.recarray) 
 
-def latent_dirichlet(X):
+def latent_dirichlet(X): # TODO: change to more appropriate name latent_simplex
     """ TODO: describe this function"""
     N, T, J = X.shape
 
@@ -39,6 +39,13 @@ def latent_dirichlet(X):
         
     @mc.observed
     def X_obs(pi=pi, beta=beta, sigma=sigma, value=X):
+        logp = 0.
+        for n in range(N):
+            logp += mc.normal_like(value[n,:,:], mu=pi, tau=pl.array(sigma)**-2)
+        return logp
+
+    # old X_obs liklihood code
+    # TODO: compare this mixture model likelihood to the simpler likelihood abover
         logp = pl.zeros(N)
         for n in range(N):
             logp[n] = mc.normal_like(pl.array(value[n]).ravel(),
