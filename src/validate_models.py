@@ -56,11 +56,11 @@ def validate_once(true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.0], true_std = 0.01*pl
     bad_model_metrics = calc_quality_metrics(true_cf, true_std, bad_model)
     
     # fit latent simplex model, calculate fit metrics 
-    m, latent_simplex = models.fit_latent_simplex(X)
+    m, latent_simplex = models.fit_latent_simplex(X, 100000, 50000, 50)
     latent_simplex_metrics = calc_quality_metrics(true_cf, true_std, latent_simplex)
     
     # fit other version of latent simplex model, calculate fit metrics
-    m, latent_simplex_v2 = models.fit_latent_simplex_v2(X)
+    m, latent_simplex_v2 = models.fit_latent_simplex_v2(X, 100000, 50000, 50)
     latent_simplex_v2_metrics = calc_quality_metrics(true_cf, true_std, latent_simplex_v2)
     
     # either write results to disk or return them 
