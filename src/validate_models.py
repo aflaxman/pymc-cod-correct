@@ -9,6 +9,27 @@ import graphics
 import models 
 reload(models)
 
+def retrieve_estimates(preds, save=False, model='', dir='', i=0):
+    """
+    calculates the posterior mean for pi as well as the 95% hpd region and
+    optionally saves this output
+    """
+    
+    T, J = preds.shape[1:]
+    mean = preds.mean(0).ravel()
+    hpd = mc.utils.hpd(preds, 0.05)
+    lower = hpd[:,:,0].ravel()
+    upper = hpd[:,:,1].ravel()
+    time =  pl.array([[t for j in range(J)] for t in range(T)]).ravel()
+    cause = pl.array([[j for j in range(J)] for t in range(T)]).ravel()
+    results = pl.np.core.records.fromarrays([time, cause, mean, lower, upper], 
+                                            names=['time', 'cause', 'med', 'lower', 'upper'])
+    
+    if (save): 
+        pl.rec2csv(results, '%s/%s_estimates%i.csv' % (dir, model, i))
+    else: 
+        return(results)
+    
 def calc_coverage(true_cf, preds):
     """
     Calculates the 95% hpd region for each cause from the provided model output; Returns an array 
@@ -54,14 +75,17 @@ def validate_once(true_cf = [pl.ones(3)/3.0, pl.ones(3)/3.0], true_std = 0.01*pl
     # fit bad model, calculate fit metrics 
     bad_model = models.bad_model(X)
     bad_model_metrics = calc_quality_metrics(true_cf, true_std, bad_model)
+    retrieve_estimates(bad_model, True, 'bad_model', dir, i)
     
     # fit latent simplex model, calculate fit metrics 
     m, latent_simplex = models.fit_latent_simplex(X, 100000, 50000, 50)
     latent_simplex_metrics = calc_quality_metrics(true_cf, true_std, latent_simplex)
+    retrieve_estimates(latent_simplex, True, 'latent_simplex', dir, i)
     
     # fit other version of latent simplex model, calculate fit metrics
     m, latent_simplex_v2 = models.fit_latent_simplex_v2(X, 100000, 50000, 50)
     latent_simplex_v2_metrics = calc_quality_metrics(true_cf, true_std, latent_simplex_v2)
+    retrieve_estimates(latent_simplex_v2, True, 'latent_simplex_v2', dir, i)
     
     # either write results to disk or return them 
     if save: 
