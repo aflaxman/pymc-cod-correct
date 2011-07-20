@@ -7,8 +7,11 @@ import pylab as pl
 import pymc as mc
 
 import models
+reload(models)
 import data
+reload(data)
 import graphics
+reload(graphics)
 
 class TestClass:
     def setUp(self):
