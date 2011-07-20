@@ -32,17 +32,9 @@ def latent_simplex(X):
             pi[t] = pl.reshape(pl.exp(alpha[t]), J) / pl.sum(pl.exp(alpha[t]))
         return pi
 
-    beta = mc.Normal('beta', mu=0., tau=.1**-2, value=pl.zeros_like(pi.value), doc='bias term')
-
-    sigma = [[mc.Normal('sigma_%d_%d'%(t,j), mu=X[:,t,j].std(), tau=.01**-2,
-                      value=X[:,t,j].std()) for j in range(J)] for t in range(T)]
-        
     @mc.observed
-    def X_obs(pi=pi, beta=beta, sigma=sigma, value=X):
-        logp = 0.
-        for n in range(N):
-            logp += mc.normal_like(value[n,:,:], mu=pi, tau=pl.array(sigma)**-2)
-        return logp
+    def X_obs(pi=pi, sigma=X.std(0), value=X.mean(0)):
+        return mc.normal_like(pi, mu=value, tau=sigma**-2)
     
     return vars()
 
@@ -81,36 +73,22 @@ def latent_simplex_v2(X):
     
     return vars()
     
-def fit_latent_simplex(X, iter=1000, burn=500, thin=5): 
+def fit_latent_simplex(X, iter=10000, burn=5000, thin=5): 
     vars = latent_simplex(X)
 
-    m = mc.MAP([vars['alpha'], vars['beta'], vars['X_obs']])
-    m.fit(method='fmin_powell', verbose=1)
+    m = mc.MAP([vars['alpha'], vars['X_obs']])
+    m.fit(method='fmin_powell', verbose=0)
     print vars['pi'].value
-
-    for em in range(2):
-        m = mc.MAP([vars['alpha'],vars['beta'], vars['X_obs']])
-        m.fit(method='fmin_powell', verbose=1)
-        print vars['pi'].value
-
-        m = mc.MAP([vars['sigma'], vars['X_obs']])
-        m.fit(method='fmin_powell', verbose=1)
-        print [['%.2f'%sigma_tj.value for sigma_tj in sigma_t] for sigma_t in vars['sigma']]
     
     m = mc.MCMC(vars)
-
-    for alpha_t, sigma_t in zip(m.alpha, m.sigma):
+    for alpha_t in m.alpha:
         m.use_step_method(mc.AdaptiveMetropolis, alpha_t)
-        #m.use_step_method(mc.AdaptiveMetropolis, sigma_t)
-    m.use_step_method(mc.AdaptiveMetropolis, m.beta)
 
-    m.sample(iter, burn, thin, verbose=1)
+    m.sample(iter, burn, thin, verbose=0)
     pi = m.pi.trace()
 
     print 'mean: ', pl.floor(m.pi.stats()['mean']*100.+.5)/100.
     print 'ui:\n', pl.floor(m.pi.stats()['95% HPD interval']*100.+.5)/100.
-    #acorr5 = pl.dot((pi - pi.mean(0))[:-5].T, (pi - pi.mean(0))[5:]) / pl.dot((pi - pi.mean(0))[:].T, (pi - pi.mean(0))[:])
-    #print 'acorrs:', pl.diag(pl.floor(acorr5*1000.+.5)/1000.)
 
     return m, pi.view(pl.recarray)
     
