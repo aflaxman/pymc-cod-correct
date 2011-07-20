@@ -77,11 +77,12 @@ def sim_data_for_validation(N,
                             true_cf=[[0.1, 0.3, 0.6],
                                      [0.2, 0.3, 0.5]],
                             true_std=[[.2, .05, .05], 
-                                      [.3, 0.1, 0.1]]):
+                                      [.3, 0.1, 0.1]], 
+                            bias_std=[1.,1.,1.]):
     """
     Input
     -----
-    true_cf - a list of lists of true cause fractions (each must sum to one)
+    true_cf  - a list of lists of true cause fractions (each must sum to one).
     true_std - a list of lists of the standard deviations corresponding to the true csmf's 
              for each time point. Can either be a list of length J inside a list of length
              1 (in this case, the same standard deviation is used for all time points) or 
@@ -89,11 +90,15 @@ def sim_data_for_validation(N,
              is specified and used for each time point). This is meant to capture how
              variable estimates of the true cause fraction will be (i.e. causes that
              are more difficult to estimate will be more variable and therefore will 
-             have greater uncertainty)
+             have greater uncertainty).
+    bias_std - a list of length J giving the bias for the standard deviations for each 
+             cause (as a multiplier: i.e. 0.9 would imply that we will underestimate
+             the standard deviation by 10% on average while 1.1 would imply that we
+             will overestimate the standard deviation by 10% on average). 
     
     Output
     -----
-    N draws from an 'estimated' distribution for the specified causes 
+    N JxT draws from an 'estimated' distribution for the specified causes 
     """
 
     if len(true_std)==1 and len(true_cf)>1: 
@@ -101,9 +106,7 @@ def sim_data_for_validation(N,
     
     est_cf = sim_data(1, true_cf, true_std)[0]
     est_error = est_cf - true_cf
-
-    est_std = true_std # TODO: consider less correlated relationship
-    
+    est_std = true_std*mc.runiform(pl.array(bias_std)*0.9, pl.array(bias_std)*1.1)
     sims = sim_data(N, est_cf, est_std, sum_to_one=False)
     return sims
     
