@@ -61,11 +61,13 @@ def sim_data(N, true_cf=[[.3, .6, .1],
         transformed_std.append( ((1/(pi_i*(pi_i-1)))**2 * sigma_pi_i**2)**0.5 )
             
     ## find minimum standard deviation (by cause across time) and draw from this 
-    min = pl.array(transformed_std).min(0) - 0.0000001
+    min = pl.array(transformed_std).min(0)
     common_perturbation = [pl.ones([T,J])*mc.rnormal(mu=0, tau=min**-2) for n in range(N)]
-
+    
     ## draw from remaining variation 
-    additional_perturbation = [[mc.rnormal(mu=0, tau=(pl.array(transformed_std)**2 - min**2)[t]**-1) for t in range(T)] for n in range(N)]
+    tau=pl.array(transformed_std)**2 - min**2
+    tau[tau==0] = 0.000001
+    additional_perturbation = [[mc.rnormal(mu=0, tau=tau[t]**-1) for t in range(T)] for n in range(N)]
 
     result = pl.zeros([N, T, J])
     for n in range(N):
@@ -104,6 +106,8 @@ def sim_data_for_validation(N,
     if len(true_std)==1 and len(true_cf)>1: 
         true_std = [true_std[0] for i in range(len(true_cf))]
     
+    print true_cf
+    print true_std
     est_cf = sim_data(1, true_cf, true_std)[0]
     est_error = est_cf - true_cf
     est_std = true_std*mc.runiform(pl.array(std_bias)*0.9, pl.array(std_bias)*1.1)
