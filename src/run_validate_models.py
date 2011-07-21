@@ -2,21 +2,7 @@ import validate_models
 reload(validate_models)
 import pylab as pl
 
-reps = 3
-
-truths = [#### Effect of unequal cause fractions 
-          ## equal, time-invariant cfs; equal, time-invariant unbiased stds
-          [[pl.ones(3)/3 for i in range(3)],
-           [[0.05, 0.05, 0.05]], 
-           [1., 1., 1.]],
-          ## unequal, time-invariant cfs; equal, time-invariant unbiased stds
-          [[[0.1,0.2,0.7] for i in range(3)],
-           [[0.05, 0.05, 0.05]],
-           [1., 1., 1.]]
-         ]
-         
-'''
-reps = 50
+reps = 100
 
 truths = [#### Effect of unequal cause fractions 
           ## equal, time-invariant cfs; equal, time-invariant unbiased stds
@@ -94,7 +80,6 @@ truths = [#### Effect of unequal cause fractions
            [[0.2, 0.1, 0.05]],
            [1.1, 1., 0.9]],          
          ]
-'''
          
 validate_models.run_all_scenarios(truths, reps, '../data') 
 
