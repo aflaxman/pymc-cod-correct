@@ -10,8 +10,8 @@ reload(data)
 i = int(sys.argv[1])
 dir = str(sys.argv[2])
 
-truth = data.csv2array('%s/truth.csv' % (dir))
-true_std = truth[0]
-true_cf = truth[1:]
+true_std = data.csv2array('%s/truth_std.csv' % (dir))
+true_cf = data.csv2array('%s/truth_cf.csv' % (dir))
+std_bias = data.csv2array('%s/truth_bias.csv' % (dir))[0]
 
-validate_models.validate_once(true_cf, true_std, True, dir, i)
+validate_models.validate_once(true_cf, true_std, std_bias, True, dir, i)

@@ -65,11 +65,11 @@ def sim_data(N, true_cf=[[.3, .6, .1],
     common_perturbation = [pl.ones([T,J])*mc.rnormal(mu=0, tau=min**-2) for n in range(N)]
 
     ## draw from remaining variation 
-    additional_perturbation = [mc.rnormal(mu=0, tau=(pl.array(transformed_std)**2 - min**2)**-1) for n in range(N)]
+    additional_perturbation = [[mc.rnormal(mu=0, tau=(pl.array(transformed_std)**2 - min**2)[t]**-1) for t in range(T)] for n in range(N)]
 
     result = pl.zeros([N, T, J])
     for n in range(N):
-        result[n, :, :] = mc.invlogit(mc.logit(true_cf) + common_perturbation[n] + additional_perturbation[n])
+        result[n, :, :] = [mc.invlogit(mc.logit(true_cf[t]) + common_perturbation[n][t] + additional_perturbation[n][t]) for t in range(T)]
 
     return result
 
@@ -78,7 +78,7 @@ def sim_data_for_validation(N,
                                      [0.2, 0.3, 0.5]],
                             true_std=[[.2, .05, .05], 
                                       [.3, 0.1, 0.1]], 
-                            bias_std=[1.,1.,1.]):
+                            std_bias=[1.,1.,1.]):
     """
     Input
     -----
@@ -91,7 +91,7 @@ def sim_data_for_validation(N,
              variable estimates of the true cause fraction will be (i.e. causes that
              are more difficult to estimate will be more variable and therefore will 
              have greater uncertainty).
-    bias_std - a list of length J giving the bias for the standard deviations for each 
+    std_bias - a list of length J giving the bias for the standard deviations for each 
              cause (as a multiplier: i.e. 0.9 would imply that we will underestimate
              the standard deviation by 10% on average while 1.1 would imply that we
              will overestimate the standard deviation by 10% on average). 
@@ -106,7 +106,7 @@ def sim_data_for_validation(N,
     
     est_cf = sim_data(1, true_cf, true_std)[0]
     est_error = est_cf - true_cf
-    est_std = true_std*mc.runiform(pl.array(bias_std)*0.9, pl.array(bias_std)*1.1)
+    est_std = true_std*mc.runiform(pl.array(std_bias)*0.9, pl.array(std_bias)*1.1)
     sims = sim_data(N, est_cf, est_std, sum_to_one=False)
     return sims
     
