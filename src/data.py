@@ -106,8 +106,6 @@ def sim_data_for_validation(N,
     if len(true_std)==1 and len(true_cf)>1: 
         true_std = [true_std[0] for i in range(len(true_cf))]
     
-    print true_cf
-    print true_std
     est_cf = sim_data(1, true_cf, true_std)[0]
     est_error = est_cf - true_cf
     est_std = true_std*mc.runiform(pl.array(std_bias)*0.9, pl.array(std_bias)*1.1)
