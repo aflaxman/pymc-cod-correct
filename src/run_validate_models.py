@@ -29,7 +29,7 @@ truths = [#### Effect of unequal cause fractions
            [1., 1., 1.]],
         
           #### Effect of time-varying cause fractions (equal and constant uncertainty) 
-          ## 2 time-varying cfs; equal, time-invariant unbiased stds
+          ## 5) 2 time-varying cfs; equal, time-invariant unbiased stds
           [[pl.ones(3)/3 + i*pl.array([-0.01, 0.01, 0]) for i in range(10)], 
            [[0.05, 0.05, 0.05]],
            [1., 1., 1.]],
@@ -57,7 +57,7 @@ truths = [#### Effect of unequal cause fractions
           [[[0.1,0.2,0.7] for i in range(10)],
            [pl.ones(3)/10+i*pl.array([-0.01, 0.01, 0]) for i in range(10)],
            [1., 1., 1.]], 
-          ## unequal time-invariant cfs; unequal, time-varying unbiased stds
+          ## 11) unequal time-invariant cfs; unequal, time-varying unbiased stds
           [[[0.7,0.2,0.1] for i in range(10)],
            [pl.ones(3)/10+i*pl.array([-0.01, 0.01, 0]) for i in range(10)],
            [1., 1., 1.]], 
