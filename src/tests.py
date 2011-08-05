@@ -7,8 +7,11 @@ import pylab as pl
 import pymc as mc
 
 import models
+reload(models)
 import data
+reload(data)
 import graphics
+reload(graphics)
 
 class TestClass:
     def setUp(self):
@@ -74,7 +77,7 @@ class TestClass:
         assert pl.allclose(Y.sum(axis=2), 1), 'should be all ones, (%s found)' % str(Y.sum(axis=2))
 
     def test_good_model(self):
-        vars = models.latent_dirichlet(self.X)
+        vars = models.latent_simplex(self.X)
         assert pl.all(pl.sum(vars['pi'].value, 1) <= 1.0), 'pi values should sum to at most 1, (%s found)' % pl.sum(vars['pi'].value, 1)
         m = mc.MCMC(vars)
         m.sample(10)

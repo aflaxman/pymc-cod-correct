@@ -2,17 +2,85 @@ import validate_models
 reload(validate_models)
 import pylab as pl
 
-reps = 50
+reps = 100
 
-truths = [  [[[0.1, 0.3, 0.6], [0.15, 0.3, 0.55], [0.15, 0.35, 0.5], [0.15, 0.4, 0.45]], 
-             [0.01,0.01,0.01]], 
-            [[[0.1, 0.3, 0.6], [0.15, 0.3, 0.55], [0.15, 0.35, 0.5], [0.15, 0.4, 0.45]], 
-             [0.1,0.1,0.1]],
-            [[[0.1, 0.3, 0.6], [0.15, 0.3, 0.55], [0.15, 0.35, 0.5], [0.15, 0.4, 0.45]], 
-             [0.2,0.2,0.2]],
-            [[[0.1, 0.3, 0.6], [0.15, 0.3, 0.55], [0.15, 0.35, 0.5], [0.15, 0.4, 0.45]], 
-             [0.01,0.05,0.25]],             
-            [[[0.1, 0.3, 0.6], [0.15, 0.3, 0.55], [0.15, 0.35, 0.5], [0.15, 0.4, 0.45]], 
-             [0.25,0.05,0.01]]  ]       
+truths = [#### Effect of unequal cause fractions 
+          ## equal, time-invariant cfs; equal, time-invariant unbiased stds
+          [[pl.ones(3)/3 for i in range(10)],
+           [[0.05, 0.05, 0.05]], 
+           [1., 1., 1.]],
+          ## unequal, time-invariant cfs; equal, time-invariant unbiased stds
+          [[[0.1,0.2,0.7] for i in range(10)],
+           [[0.05, 0.05, 0.05]],
+           [1., 1., 1.]],
+          
+          #### Effect of unequal uncertainty 
+          ## equal, time-invariant cfs; unequal, time-invariant unbiased stds
+          [[pl.ones(3)/3 for i in range(10)],
+           [[0.05, 0.1, 0.2]],
+           [1., 1., 1.]],     
+          ## unequal, time-invariant cfs; unequal, time-invariant unbiased stds (stds positively correlated with cfs)
+          [[[0.1,0.2,0.7] for i in range(10)],
+           [[0.05, 0.1, 0.2]],
+           [1., 1., 1.]],
+          ## unequal, time-invariant cfs; unequal, time-invariant unbiased stds (stds negatively correlated with cfs)
+          [[[0.1,0.2,0.7] for i in range(10)],
+           [[0.2, 0.1, 0.05]],
+           [1., 1., 1.]],
+        
+          #### Effect of time-varying cause fractions (equal and constant uncertainty) 
+          ## 2 time-varying cfs; equal, time-invariant unbiased stds
+          [[pl.ones(3)/3 + i*pl.array([-0.01, 0.01, 0]) for i in range(10)], 
+           [[0.05, 0.05, 0.05]],
+           [1., 1., 1.]],
+          ## 2 more rapidly time-varying cfs; equal, time-invariant unbiased stds
+          [[pl.ones(3)/3 + i*pl.array([-0.03, 0.03, 0]) for i in range(10)], 
+           [[0.05, 0.05, 0.05]],
+           [1., 1., 1.]], 
+          ## 3 time-varying cfs; equal, time-invariant unbiased stds.  
+          [[pl.ones(3)/3 + i*pl.array([-0.03, 0.015, 0.015]) for i in range(10)], 
+           [[0.05, 0.05, 0.05]],
+           [1., 1., 1.]], 
+          
+          #### Effect of time-varying cause fractions (unequal and constant uncertainty) 
+          ## 2 time-varying cfs; unequal, time-invariant unbiased stds
+          [[pl.ones(3)/3 + i*pl.array([-0.01, 0.01, 0]) for i in range(10)], 
+           [[0.05, 0.2, 0.1]],
+           [1., 1., 1.]],
+          ## 2 time-varying cfs; unequal, time-invariant unbiased stds
+          [[pl.ones(3)/3 + i*pl.array([-0.01, 0.01, 0]) for i in range(10)], 
+           [[0.1, 0.2, 0.05]],
+           [1., 1., 1.]],        
+          
+          #### Effect of time-varying uncertainty (when cf is invariant) 
+          ## unequal time-invariant cfs; unequal, time-varying unbiased stds
+          [[[0.1,0.2,0.7] for i in range(10)],
+           [pl.ones(3)/10+i*pl.array([-0.01, 0.01, 0]) for i in range(10)],
+           [1., 1., 1.]], 
+          ## unequal time-invariant cfs; unequal, time-varying unbiased stds
+          [[[0.7,0.2,0.1] for i in range(10)],
+           [pl.ones(3)/10+i*pl.array([-0.01, 0.01, 0]) for i in range(10)],
+           [1., 1., 1.]], 
+          
+          #### Effect of biased uncertainty
+          ## unequal time-invariant cfs; unequal, time-invariant biased stds
+          [[[0.1,0.2,0.7] for i in range(10)],
+           [[0.05, 0.1, 0.2]],
+           [0.9, 1., 1.1]],
+          ## unequal time-invariant cfs; unequal, time-invariant biased stds
+          [[[0.1,0.2,0.7] for i in range(10)],
+           [[0.05, 0.1, 0.2]],
+           [1.1, 1., 0.9]],
+          ## unequal time-invariant cfs; unequal, time-invariant biased stds
+          [[[0.1,0.2,0.7] for i in range(10)],
+           [[0.2, 0.1, 0.05]],
+           [0.9, 1., 1.1]],
+          ## unequal time-invariant cfs; unequal, time-invariant biased stds
+          [[[0.1,0.2,0.7] for i in range(10)],
+           [[0.2, 0.1, 0.05]],
+           [1.1, 1., 0.9]],          
+         ]
+         
+validate_models.run_all_scenarios(truths, reps, '../data') 
 
-validate_models.run_all_scenarios(truths, reps, '../data')
+

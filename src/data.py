@@ -27,51 +27,91 @@ def csv2array(fname):
         Y.append(row)
     return pl.array(Y, dtype='f')
 
-def logit_normal_draw(cf_mean, std, N, J):
-    std = pl.array(std)
-    if mc.__version__ == '2.0rc2': # version on Omak 
-        X = [mc.invlogit(mc.rnormal(mu=cf_mean, tau=std**-2)) for n in range(N)]
-        Y = pl.array(X)
-    else: 
-        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=(N,J))
-        Y = mc.invlogit(X)
-    return Y
-
 def sim_data(N, true_cf=[[.3, .6, .1],
                            [.3, .5, .2]],
-             true_std=[.2, .05, .05],
+             true_std=[[.2, .05, .05], 
+                       [.3, 0.1, 0.1]],
              sum_to_one=True):
     """ 
     Create an NxTxJ matrix of simulated data (T is determined by the length 
     of true_cf, J by the length of the elements of true_cf). 
-    
+
     true_cf - a list of lists of true cause fractions (each must sum to one)
-    true_std - a list of the standard deviations corresponding to the true csmf's
+    true_std - a list of lists of the standard deviations corresponding to the true csmf's 
+             for each time point. Can either be a list of length J inside a list of length
+             1 (in this case, the same standard deviation is used for all time points) or 
+             can be T lists of length J (in this case, the a separate standard deviation 
+             is specified and used for each time point). 
     """
 
     if sum_to_one == True: 
         assert pl.allclose(pl.sum(true_cf, 1), 1), 'The sum of elements of true_cf must equal 1' 
-        assert len(true_cf[0])==len(true_std), 'The length of true_cf[0] and true_std must be the same'
     T = len(true_cf)
     J = len(true_cf[0])
+    
+    ## if only one std provided, duplicate for all time points 
+    if len(true_std)==1 and len(true_cf)>1: 
+        true_std = [true_std[0] for i in range(len(true_cf))]    
 
     ## transform the mean and std to logit space
-    ## NOTE: we use the transformed standard deviation for the first csmf on the list for everything
     transformed_std = []
-    for pi_i, sigma_pi_i in zip(true_cf[0], true_std):
+    for t in range(T): 
+        pi_i = pl.array(true_cf[t])
+        sigma_pi_i = pl.array(true_std[t])
         transformed_std.append( ((1/(pi_i*(pi_i-1)))**2 * sigma_pi_i**2)**0.5 )
-        
-    ## draw from distribution
-    perturbation = [mc.rnormal(mu=0,
-                               tau=pl.array(transformed_std)**-2) for n in range(N)]
+            
+    ## find minimum standard deviation (by cause across time) and draw from this 
+    min = pl.array(transformed_std).min(0)
+    common_perturbation = [pl.ones([T,J])*mc.rnormal(mu=0, tau=min**-2) for n in range(N)]
+    
+    ## draw from remaining variation 
+    tau=pl.array(transformed_std)**2 - min**2
+    tau[tau==0] = 0.000001
+    additional_perturbation = [[mc.rnormal(mu=0, tau=tau[t]**-1) for t in range(T)] for n in range(N)]
 
     result = pl.zeros([N, T, J])
-    for t in range(T):
-        for n in range(N):
-            result[n, t, :] = mc.invlogit(mc.logit(true_cf[t]) + perturbation[n])
+    for n in range(N):
+        result[n, :, :] = [mc.invlogit(mc.logit(true_cf[t]) + common_perturbation[n][t] + additional_perturbation[n][t]) for t in range(T)]
 
     return result
-            
+
+def sim_data_for_validation(N,
+                            true_cf=[[0.1, 0.3, 0.6],
+                                     [0.2, 0.3, 0.5]],
+                            true_std=[[.2, .05, .05], 
+                                      [.3, 0.1, 0.1]], 
+                            std_bias=[1.,1.,1.]):
+    """
+    Input
+    -----
+    true_cf  - a list of lists of true cause fractions (each must sum to one).
+    true_std - a list of lists of the standard deviations corresponding to the true csmf's 
+             for each time point. Can either be a list of length J inside a list of length
+             1 (in this case, the same standard deviation is used for all time points) or 
+             can be T lists of length J (in this case, the a separate standard deviation 
+             is specified and used for each time point). This is meant to capture how
+             variable estimates of the true cause fraction will be (i.e. causes that
+             are more difficult to estimate will be more variable and therefore will 
+             have greater uncertainty).
+    std_bias - a list of length J giving the bias for the standard deviations for each 
+             cause (as a multiplier: i.e. 0.9 would imply that we will underestimate
+             the standard deviation by 10% on average while 1.1 would imply that we
+             will overestimate the standard deviation by 10% on average). 
+    
+    Output
+    -----
+    N JxT draws from an 'estimated' distribution for the specified causes 
+    """
+
+    if len(true_std)==1 and len(true_cf)>1: 
+        true_std = [true_std[0] for i in range(len(true_cf))]
+    
+    est_cf = sim_data(1, true_cf, true_std)[0]
+    est_error = est_cf - true_cf
+    est_std = true_std*mc.runiform(pl.array(std_bias)*0.9, pl.array(std_bias)*1.1)
+    sims = sim_data(N, est_cf, est_std, sum_to_one=False)
+    return sims
+    
 def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female', keep_year='2010'):
     """ Get data from CoDMod output on J drive
     Input 
@@ -164,6 +204,16 @@ def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female
 
     return cf_rec
 
+def logit_normal_draw(cf_mean, std, N, J):
+    std = pl.array(std)
+    if mc.__version__ == '2.0rc2': # version on Omak 
+        X = [mc.invlogit(mc.rnormal(mu=cf_mean, tau=std**-2)) for n in range(N)]
+        Y = pl.array(X)
+    else: 
+        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=(N,J))
+        Y = mc.invlogit(X)
+    return Y
+    
 def sim_cod_data(N, cf_rec): 
     """ 
     Create an NxJ matrix of simulated data (J is the number of causes and is determined
@@ -187,31 +237,7 @@ def sim_cod_data(N, cf_rec):
     J = len(cf_mean)
     return logit_normal_draw(cf_mean, std, N, J)
 
-def sim_data_for_validation(N,
-                            true_cf=[[0.1, 0.3, 0.6],
-                                       [0.2, 0.3, 0.5]],
-                            true_std=[0.05, 0.05, 0.05]):
-    """
-    Input
-    -----
-    true_cf - the true cause fractions
-    true_std - the standard deviation associated with the cause fractions: this is meant to 
-        capture how variable estimates of the true cause fraction will be (i.e. causes 
-        that are more difficult to estimate will be more variable and therefore will 
-        have greater uncertainty)
-    
-    Output
-    -----
-    N draws from an 'estimated' distribution for the specified causes 
-    """
 
-    est_cf = sim_data(1, true_cf, true_std)[0]
-    est_error = est_cf - true_cf
-
-    est_std = true_std # TODO: consider less correlated relationship
-    
-    sims = sim_data(N, est_cf, est_std, sum_to_one=False)
-    return sims
     
 
 
