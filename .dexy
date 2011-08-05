@@ -1,0 +1,8 @@
+{
+  "_*.tex|dexy" : {},
+  "_*.cls|dexy" : {},
+  "model.py|idio|l" : {},
+  "paper.tex|jinja|hd|ft|latex" : {
+    "allinputs" : true
+  }
+}

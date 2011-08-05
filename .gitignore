@@ -5,3 +5,6 @@
 *.blg
 *.log
 *.bbl
+artifacts
+output*
+logs
