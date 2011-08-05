@@ -32,8 +32,11 @@ def latent_simplex(X):
         return pi
 
     @mc.observed
-    def X_obs(pi=pi, sigma=X.std(0), value=X.mean(0)):
-        return mc.normal_like(pi, mu=value, tau=sigma**-2)
+    def X_obs(pi=pi, value=X.mean(0), sigma=X.std(0), pow=2):
+        """ TODO: experiment with different values of pow, although
+        pow=2 seems like a fine choice based on our limited
+        experience."""
+        return -((pl.absolute(pi - value) / sigma)**pow).sum()
     
     return vars()
 
