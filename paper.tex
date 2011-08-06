@@ -28,13 +28,13 @@
 
 \begin{abstract}
         % Do not use inserted blank lines (ie \\) until main body of text.
-        \paragraph*{Background:} Text for this section of the abstract. 
+        \paragraph*{Background:} Population-level information on cause-specific mortality rates by country, age, sex, and time is important for decision-making.  Models are crucial to estimating and predicting this information when direct measurements are not available.  State-of-the-art models produce estimates disease by disease, however, and do not enforce the constraint that the sum of deaths over every cause must be equal to the total deaths due to all causes.
       
-        \paragraph*{Methods:} Text for this section of the abstract \ldots
+        \paragraph*{Methods:} We developed a statistical model to correct for inconsistencies between cause-specific mortality rate estimates and all-cause mortality estimates. We compared our model to a naive approach in a validation environment using a series of simulation studies designed to test TK.  We measured the quality of the corrected estimates by TK.
 
-        \paragraph*{Results:} Text for this section of the abstract \ldots
+        \paragraph*{Results:} Over all simulations, our approach performed TK, compared to TK for the naive approach.  For setting TK, our approach showed significant benefits in terms of TK and TK.  For setting TK, neither approach performed very well, demonstrating that without sufficiently accurate input data, all model-based approaches have limitations.
 
-        \paragraph*{Conclusions:} Text for this section of the abstract \ldots
+        \paragraph*{Conclusions:} Our model is a fast and effective way to improve the estimates produced by many separate models, and we recommend using it to enforce consistency between cause-specific mortality rates and all-cause mortality rates.
 \end{abstract}
 
 
@@ -82,17 +82,25 @@
 %% statement of what is being reported in the article.
 
 \section*{Background}
-  (FIXME: need to talk about GBD here...different models for each cause...different levels in the
-  cause hierarchy).  Models for each cause are estimated separately, so there is no guarantee of 
-  consistency and the estimated cause fractions for any given country-sex-year do not necessarily 
-  sum to one. \pb
+  TK one paragraph on population health metrics, GBD, CoD paper which
+  uses different ensemble models for each cause and how hard it would
+  be to combine them.
 
-  (FIXME: this would be where a review of the literature would be appropriate, had we done one.) \pb
+  Models for each cause are estimated separately, so there is no
+  guarantee of consistency and the estimated cause fractions for any
+  given country-sex-year do not necessarily sum to one.
 
-  A simulation environment was constructed to replicate important characteristics of 
-  the problem described.  We propose two models that take different approaches to predicting 
-  consistent cause fractions from inconsistent preliminary estimates.  These two models are then  
-  validated in the simulation environment and compared on a variety of metrics. \pb
+  TK one paragraph on what we have done, a model-based approach to
+  enforcing consistency between cause-specific model estimates and
+  all-cause estimates.  We validated our approach through a simulation
+  study, with an environment constructed to capture important
+  characteristics of the real challenge.  We propose two models
+  that take different approaches to predicting consistent cause
+  fractions from inconsistent preliminary estimates.  These two models
+  are then validated in the simulation environment and compared on a
+  variety of metrics.
+
+  TK one paragraph on the importance of what we have done.
 
 %%%%%%%%%%%%%%%%%%
 %% Methods
@@ -103,75 +111,108 @@
 %% including a power calculation if appropriate.
 
 \section*{Methods}
-  \subsection*{Simulation Environment}
-     Simulated cause fraction estimates are generated for 3 causes over a period of 4 years. 
-    (FIXME: the number of causes and the length of the time period could change). 'True' 
-    cause fractions are specified for each of the causes in each of the years. Additionally, 
-    a 'true' precision is specified for each cause fraction, and this is treated as 
-    constant over time (FIXME: should probably explain what this precision is supposed to 
-    be telling us about the cause fractions). A single draw from a normal distribution 
-    with mean 0 and precision equal to the true cause fraction precision is generated. 
-    This is added to the true cause fractions to imitate an unbiased preliminary estimate of the
-    true cause fractions. A set of 1000 draws from a normal distribution using this estimated
-    cause fraction as the mean and the true precision as the precision is taken as the
-    'data' for this simulation that will eventually be used in the modeling process. 
-    This procedure is repeated, resulting in 50 sets of simulated preliminary 
-    estimates for each specified set of cause fractions. All draws from normal distributions 
-    are carried out in logit space to guarantee that the resulting cause fractions are each
-    between zero and one. Both of the models described below are fit on each of the 50 sets 
-    of preliminary estimates for each specified cause fraction scenario. \pb
-
-    A variety of different scenarios are tested (FIXME: must decide on what the scenarios are
-    before I can describe them) \pb
-
-  \subsection*{Statistical Model}
-    Two models are proposed for estimating consistent cause fractions. The first takes an obvious
-    approach: all cause fractions are simply scaled by a factor equal to their sum: 
-    (FIXME: need to put some math here, i.e. the bad model)
-  \begin{align*}
-    math!
-  \end{align*}
-    For the simulated estimates described above, this is carried out individually for 
-    each simulation and then the mean estimate for each cause is taken as the final 
-    estimate for each cause fraction. The 95\% high probability density region (95\% hpd) 
-    is also calculated and used to generate estimates of the upper and lower bounds of 
-    the final cause fraction estimates. \pb
-
-    The second model proposed attempts to take into account differences in the estimated 
-    precision of the preliminary cause fraction estimates. Additionally, it explicitly 
-    takes into account correlation in these preliminary estimates over time (FIXME: this 
-    may not actually be true. Must understand the model better before writing about it). 
-    (FIXME: probably need a more thorough verbal description here of the model; also 
-    need to update the formula Abie typed below). 
-  \begin{align*}
-    \Pr[Y | \pi, \tau] &= \sum_{i=1}^N \frac{1}{N} \Pr[Y_i | \pi, \tau]\\
-    Y_i | \pi, \tau &\sim N(\pi, \tau)\\
-    \pi &\sim \Dirichlet(1) \\
-    \tau &\sim \Uniform[0, \infty) \\
-  \end{align*}
-    (FIXME: need to talk about how the model is fit). The mean of pi across all retained 
-    iterations of the MCMC chain is taken as the final estimate of the cause fractions 
-    and the 95\% hpd is calculated from all retained iterations. \pb
+The estimation challenge we faced was the following: For a given sex
+and geographic region, we were given estimates of the cause-specific
+mortality fraction $F_j$ for a mutually exclusive, collectively
+exhaustive list causes $j = 1,\ldots,J$.  Each estimate is
+represented by $T$ draws from the posterior distribution over values
+for $N$ years:
+\[F_j = \left(f_{j,y_1}^t, \ldots, f_{j,y_2}^t\right)_{t=1}^T.
+\]
+Our goal was to produce a posterior distribution for the true cause
+fractions $\pi_{j,y}$, by incorporating the consistency condition
+$\sum_{j} \pi_{j,y}=1$ for all $y$.  This would allow us to produce
+point estimates and uncertainty intervals for individual cause
+fractions, as well as estimate the change in $\pi_{j,y}$ as a function
+of $y$ for each $j$.
 
   \subsection*{Quality Metrics}
-    The final cause fraction estimates from each model are compared to the known true cause 
-    fractions and the absolute error, relative error, and coverage (i.e. the true estimate
-    falls between the upper and lower bounds) are calculated for each cause and each 
-    of the 50 sets of estimates. The mean and median absolute error, mean and 
-    median relative error, and mean coverage are estimated by cause across all sets of 
-    estimates. Mean coverage is also estimated for all causes and the 
-    percent of times across all 50 sets of estimates that all causes are covered (full 
-    coverage) is also computed. One additional metric, cause specific mortality fraction 
-    accuracy (CSMF accuracy) is also computed for each of the 50 sets of estimates 
-    according to the following formula: 
+  We wanted the estimated cause fractions from any model to be close
+  to the true cause fractions and the absolute error, although being
+  close in relative error is also important for certain applications.
+  Following the approach taken in Verbal Autopsy quality metrics
+  \ref{VAMetrics}, we summarize the absolute error using cause
+  specific mortality fraction accuracy (CSMF accuracy), defined by the
+  following formula:
   \begin{align*}
-    1-\sum \left | CSMF_{pred} - CSMF_{true} \right |/(2*(1-min(cf_{true})))
+    \text{CSMF Accuracy} = 1- \sum \frac{\left | \pi_{j,y} - \pi^{\text{true}}_{j,y} \right |}{2(1-\min_j(\pi^{\text{true}}_{j,y}))}
   \end{align*}
-    The mean and median CSMF accuracy are then computed across all sets of estimates. \pb 
+  Furthermore, we desired that the coverage probability (the
+  probability that the true estimate falls between the upper and lower
+  bounds of the $95\%$ uncertainty interval) for each cause be close
+  to $0.95$.
 
-    (FIXME: need to remove some of the metrics here that we aren't ultimately going to 
-    use and also need to describe why each one of the ones that remain are interesting 
-    and necessary given the others) \pb 
+  \subsection*{Statistical Models}
+  Before developing a sophisticated statistical model for estimating
+  $\pi_{j,y}$, we considered a naive approach: for each
+  $t=1,\ldots,T$, for each $y$, we simply scaled the vector
+  $(f_{1,y}^t, \ldots, f_{J,y}^t)$ to make it sum to unity:
+  \begin{align*}
+    \pi_{j,y}^t = \frac{f_{j,y}^t}{\sum_{j'=1}^J f_{j',y}^t}.
+  \end{align*}
+  This provides a non-parametric posterior distribution for
+  $\pi_{j,y}$, which we summarized as a point estimate for each $j$
+  and $y$ by taking the mean over values of $t$, and estimates
+  uncertainty intervals by taking the $95\%$ highest probability
+  density interval.
+
+  We developed the more traditional statistical model that we now
+  describe to take into account the differences in uncertainty that
+  the different $f_{j,y}$ in the input data often exhibit.  The formal
+  specification of the model is the following:
+  \begin{align*}
+    p(f_{j,y}^1,\ldots,f_{j,y}^T | \pi) &\propto \exp\left\{-\frac{\left(\pi_{j,y}-\E_t[f_{j,y}]\right)^2}{\Var_t[f_{j,y}]} \right\}\\
+    \pi_{j,y} &= \frac{\alpha_{j,y}^t}{\sum_{j'=1}^J \alpha_{j',y}^t}\\
+    \alpha_{j,y} &\sim \Normal\left(0, 1^2\right)
+  \end{align*}
+
+ This approach can be modified explicitly account for time-correlation in the
+ $f_{j,y}$ inputs, by making the likelihood look more like a
+ multivariate normal:
+  \begin{align*}
+    p\left((f_{j,y_1}^t,\ldots,f_{j,y_N}^t)_{t=1}^T \big| \pi \right)
+    &\propto \exp\left\{-\left((\pi_j - \E_t[f_j])^T \Sigma^{-1} (\pi_j - \E_t[f_j])\right) \right\}\\
+    \pi_{j,y} &= \frac{\alpha_{j,y}^t}{\sum_{j'=1}^J \alpha_{j',y}^t}\\
+    \alpha_{j,y} &\sim \Normal\left(0, 1^2\right)\\
+    \Sigma &= \Matern(\sigma, \rho, 2) + \Diag(\Var_t[f_{j,y_1}],
+      \ldots, \Var_t[f_{j,y_N}])\\
+    \sigma &\sim \Uniform[0,1]\\
+    \rho &\sim \Normal_{\epsilon+}(20, 10^2)
+  \end{align*}
+
+
+  \subsection*{Simulation Environment}
+  To validate the models above, compare the sophisticated approaches
+  to the naive approach, and generally assess how much improvement
+  this sort of consistenty constraint can be expected to provide, we
+  conducted a simulation study.  We chose true cause fractions for a
+  three different sized cause lists, for a 10 year
+  time period, and generated noisy ``estimates'' of the true cause
+  fractions to produce simulated input data for which ground truth was
+  known.  We varied the dispersion of the estimates, as well as the
+  bias to understand how the different models perform in different
+  settings.  This can be understood as a three-armed factorial study
+  design, with cause lists of size $J=3, 30, 300$, dispersion taking
+  values low, medium, and high, and bias taking values low, medium,
+  and high.
+
+  To be precise the true mean cause fractions were selected random from an
+  uninformative Dirichlet distribution with $J$ dimensions. These were
+  then extended to smoothly varying functions of time by TK. Then bias
+  was generated by taking a single draw from a normal distribution
+  with mean 0 and variance $\sigma_b^2$, which was added to the true
+  cause fractions in logit space to introduce systematic bias. We then
+  generated a collection of 1000
+  draws from multivariate normal distributions using the logit of time-series
+  of the biased cause fraction
+  as the mean and covariance function $\Matern(\sigma_d, 20,
+  2)$. The inverse logit of these $1000$ samples (of $J\times 10$-dimensional vectors)
+  constitute the simulated input data we used to validate our models.
+
+  We repeated this procedure $500$ times for each of the $27$
+  possibilities in the design, and calculated CSMF accuracy, coverage
+  probability, and TK something about change over time for all of
+  them.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Results  %%
