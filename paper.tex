@@ -166,18 +166,18 @@ of $y$ for each $j$.
     \alpha_{j,y} &\sim \Normal\left(0, 1^2\right)
   \end{align*}
 
- This approach can be modified explicitly account for time-correlation in the
+ This approach can be modified to explicitly account for time-correlation in the
  $f_{j,y}$ inputs, by making the likelihood look more like a
  multivariate normal:
   \begin{align*}
     p\left((f_{j,y_1}^t,\ldots,f_{j,y_N}^t)_{t=1}^T \big| \pi \right)
-    &\propto \exp\left\{-\left((\pi_j - \E_t[f_j])^T \Sigma^{-1} (\pi_j - \E_t[f_j])\right) \right\}\\
+    &\propto \exp\left\{-\left((\pi_j - \E_t[f_j])^T (\Sigma_j + \Diag(\Var_t[f_{j,y_1}],
+      \ldots, \Var_t[f_{j,y_N}])) ^{-1} (\pi_j - \E_t[f_j])\right) \right\}\\
     \pi_{j,y} &= \frac{\alpha_{j,y}^t}{\sum_{j'=1}^J \alpha_{j',y}^t}\\
     \alpha_{j,y} &\sim \Normal\left(0, 1^2\right)\\
-    \Sigma &= \Matern(\sigma, \rho, 2) + \Diag(\Var_t[f_{j,y_1}],
-      \ldots, \Var_t[f_{j,y_N}])\\
+    \Sigma_j &= \Matern(\sigma, \rho_j, 2)\\
     \sigma &\sim \Uniform[0,1]\\
-    \rho &\sim \Normal_{\epsilon+}(20, 10^2)
+    \rho_j &\sim \Normal_{\epsilon+}(20, 10^2)
   \end{align*}
 
 
