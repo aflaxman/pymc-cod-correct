@@ -111,14 +111,20 @@
 %% including a power calculation if appropriate.
 
 \section*{Methods}
-The estimation challenge we faced was the following: For a given sex
-and geographic region, we were given estimates of the cause-specific
+The estimation challenge we faced was the following: For a given sex, age group,
+and geographic region, we obtained estimates of the cause-specific
 mortality fraction $F_j$ for a mutually exclusive, collectively
-exhaustive list causes $j = 1,\ldots,J$.  Each estimate is
-represented by $T$ draws from the posterior distribution over values
-for $N$ years:
-\[F_j = \left(f_{j,y_1}^t, \ldots, f_{j,y_2}^t\right)_{t=1}^T.
+exhaustive list causes $j = 1,\ldots,J$, using a statistical model described elsewhere \ref{TK}.  Each estimate is
+represented by $N$ draws from the posterior distribution over values
+for $T$ years:
+\[
+F_j = \left(f_{j,y_1}^n, \ldots, f_{j,y_T}^n\right)_{n=1}^N.
 \]
+Below we have also used the notation $F_{j,y}$ to denote the marginal empirical distribution of $F_j$ for year $y$:
+\[
+F_{j,y} = \left(f_{j,y}^1, \ldots, f_{j,y}^N\right).
+\]
+
 Our goal was to produce a posterior distribution for the true cause
 fractions $\pi_{j,y}$, by incorporating the consistency condition
 $\sum_{j} \pi_{j,y}=1$ for all $y$.  This would allow us to produce
@@ -128,8 +134,8 @@ of $y$ for each $j$.
 
   \subsection*{Quality Metrics}
   We wanted the estimated cause fractions from any model to be close
-  to the true cause fractions and the absolute error, although being
-  close in relative error is also important for certain applications.
+  to the true cause fractions in terms of absolute error, although being
+  accurate in terms of relative error is also important for some applications.
   Following the approach taken in Verbal Autopsy quality metrics
   \ref{VAMetrics}, we summarize the absolute error using cause
   specific mortality fraction accuracy (CSMF accuracy), defined by the
@@ -137,79 +143,109 @@ of $y$ for each $j$.
   \begin{align*}
     \text{CSMF Accuracy} = 1- \sum \frac{\left | \pi_{j,y} - \pi^{\text{true}}_{j,y} \right |}{2(1-\min_j(\pi^{\text{true}}_{j,y}))}
   \end{align*}
-  Furthermore, we desired that the coverage probability (the
+
+  We also wanted the estimates to have accurate uncertainty intervals,
+  which we quantified in terms of coverage probability (the
   probability that the true estimate falls between the upper and lower
-  bounds of the $95\%$ uncertainty interval) for each cause be close
-  to $0.95$.
+  bounds of the $95\%$ highest probability density (HPD) interval).  We desired that the
+  coverage probability for each cause be close to $0.95$.
+
+  TK description of bias, another important metric of estimation quality:
+  \[
+  \text{Median Bias} = \operatorname{Median}{j} \left\{ \pi_{j,y} = \pi^{\text{true}}_{j,y} \right\}
+  \]
+
+  TK description of trend accuracy, a newly developed test statistic,
+  designed to capture how accurately our model has captured the time
+  trend of the corrected cause fraction estimates:
+  \[
+  \text{Trend Accuracy} = TK
+  \]
 
   \subsection*{Statistical Models}
   Before developing a sophisticated statistical model for estimating
   $\pi_{j,y}$, we considered a naive approach: for each
-  $t=1,\ldots,T$, for each $y$, we simply scaled the vector
-  $(f_{1,y}^t, \ldots, f_{J,y}^t)$ to make it sum to unity:
+  $n=1,\ldots,N$, for each $y$, we simply scaled the vector
+  $(f_{1,y}^n, \ldots, f_{J,y}^n)$ to make it sum to unity:
   \begin{align*}
-    \pi_{j,y}^t = \frac{f_{j,y}^t}{\sum_{j'=1}^J f_{j',y}^t}.
+    \pi_{j,y}^n = \frac{f_{j,y}^n}{\sum_{j'=1}^J f_{j',y}^n}.
   \end{align*}
-  This provides a non-parametric posterior distribution for
+  This provided a non-parametric posterior distribution for
   $\pi_{j,y}$, which we summarized as a point estimate for each $j$
-  and $y$ by taking the mean over values of $t$, and estimates
-  uncertainty intervals by taking the $95\%$ highest probability
-  density interval.
+  and $y$ by taking the mean over values of $n$, and estimates
+  uncertainty intervals by taking the $95\%$ HPD interval.
 
   We developed the more traditional statistical model that we now
   describe to take into account the differences in uncertainty that
   the different $f_{j,y}$ in the input data often exhibit.  The formal
   specification of the model is the following:
   \begin{align*}
-    p(f_{j,y}^1,\ldots,f_{j,y}^T | \pi) &\propto \exp\left\{-\frac{\left(\pi_{j,y}-\E_t[f_{j,y}]\right)^2}{\Var_t[f_{j,y}]} \right\}\\
+    \dens(F_{j,y} | \pi) &\propto \exp\left\{-\frac{\left(\pi_{j,y}-\E[F_{j,y}]\right)^2}{\Var[F_{j,y}]} \right\}\\
     \pi_{j,y} &= \frac{\alpha_{j,y}^t}{\sum_{j'=1}^J \alpha_{j',y}^t}\\
     \alpha_{j,y} &\sim \Normal\left(0, 1^2\right)
   \end{align*}
 
+  Here the notation $\E[F_{j,y}]$ and $\Var[F_{j,y}]$ are the usual mean and variance:
+  \begin{align*}
+    \E[F_{j,y}] &= \bigg(\sum_{n=1}^N f_{j,y}^n\bigg) / N,\\
+    \Var[F_{j,y}] &= \bigg(\sum_{n=1}^N \left(f_{j,y}^n - \E[F_{j,y}]\right)^2\bigg) / N.\\
+  \end{align*}
+
  This approach can be modified to explicitly account for time-correlation in the
- $f_{j,y}$ inputs, by making the likelihood look more like a
+ $F_j$ distribution, by making the likelihood look more like a
  multivariate normal:
   \begin{align*}
-    p\left((f_{j,y_1}^t,\ldots,f_{j,y_N}^t)_{t=1}^T \big| \pi \right)
-    &\propto \exp\left\{-\left((\pi_j - \E_t[f_j])^T (\Sigma_j + \Diag(\Var_t[f_{j,y_1}],
-      \ldots, \Var_t[f_{j,y_N}])) ^{-1} (\pi_j - \E_t[f_j])\right) \right\}\\
+    \dens\left(F_j | \pi \right)
+    &\propto \exp\left\{-\left(\pi_j - \E[F_j]\right)^T \Sigma_j^{-1} \left(\pi_j - \E[F_j]\right) \right\}\\
     \pi_{j,y} &= \frac{\alpha_{j,y}^t}{\sum_{j'=1}^J \alpha_{j',y}^t}\\
     \alpha_{j,y} &\sim \Normal\left(0, 1^2\right)\\
-    \Sigma_j &= \Matern(\sigma, \rho_j, 2)\\
+    \Sigma_j &= \Matern(\sigma, \rho_j, 2) + \Diag(\Var[F_j]))
     \sigma &\sim \Uniform[0,1]\\
     \rho_j &\sim \Normal_{\epsilon+}(20, 10^2)
   \end{align*}
 
+  Here $\E[F_j]$ and $\Var[F_j]$ are the vector-valued analogues of
+  the expectation and variance above, and $\Matern = TK$. TK more
+  description of the Matern covariance.
+
 
   \subsection*{Simulation Environment}
-  To validate the models above, compare the sophisticated approaches
-  to the naive approach, and generally assess how much improvement
-  this sort of consistenty constraint can be expected to provide, we
-  conducted a simulation study.  We chose true cause fractions for a
-  three different sized cause lists, for a 10 year
-  time period, and generated noisy ``estimates'' of the true cause
-  fractions to produce simulated input data for which ground truth was
-  known.  We varied the dispersion of the estimates, as well as the
-  bias to understand how the different models perform in different
-  settings.  This can be understood as a three-armed factorial study
-  design, with cause lists of size $J=3, 30, 300$, dispersion taking
-  values low, medium, and high, and bias taking values low, medium,
-  and high.
+  To validate the models above, and to compare the sophisticated
+  approaches to the naive approach, and to generally assess how much
+  improvement this sort of consistenty constraint can be expected to
+  provide, we conducted a simulation study.  We chose true starting
+  cause fractions $\pi^\true$ for a list of 10 causes from a heavy-tailed
+  distribution TK, and then randomly perturbed them to vary smoothly
+  over a 10 year time period, according to a Matern covariance
+  function TK.  Then we used simulation to generate 1000 samples of
+  noisy ``estimates'' of the true cause fractions to produce simulated
+  input data for which ground truth was known.  We varied the
+  dispersion of the noisy estimates, as well as the bias to understand
+  how the different models perform in different settings.  We also
+  varied the correlation between the bias and the variance, to explore
+  how inappropriately narrow uncertainty in the CoD model would affect
+  the corrected estimates.  This can be understood as a three-armed
+  factorial study design, with dispersion taking values low, medium,
+  and high, and bias taking values low, medium, and high, and
+  correlation taking values of positive, zero, and negative.
 
-  To be precise the true mean cause fractions were selected random from an
-  uninformative Dirichlet distribution with $J$ dimensions. These were
-  then extended to smoothly varying functions of time by TK. Then bias
-  was generated by taking a single draw from a normal distribution
-  with mean 0 and variance $\sigma_b^2$, which was added to the true
-  cause fractions in logit space to introduce systematic bias. We then
-  generated a collection of 1000
-  draws from multivariate normal distributions using the logit of time-series
-  of the biased cause fraction
-  as the mean and covariance function $\Matern(\sigma_d, 20,
-  2)$. The inverse logit of these $1000$ samples (of $J\times 10$-dimensional vectors)
-  constitute the simulated input data we used to validate our models.
+  To be precise, the true mean cause fractions were generated by a
+  normalized exponential transform of 10 Gaussian Processes with
+  covariance $\Matern(TK)$, evaluated at times $1,2,\ldots,10$:
+  \begin{align*}
+  \alpha^{\true}_j(y) &\sim \GP(0, \Matern(TK)),\\
+  \pi^{\true}_{j,y} &= \frac{\alpha_j(y)}{\sum_{j'=1}^J \alpha_{j'}(y)}.
+  \end{align*}
+  Then estimate of cause fractions were generated for draw $n$ from a two stage perturbation as follows:
+  \begin{align*}
+  \logit f^n_{j,y} &= \logit(\pi^{\true}_{j,y} + \beta_{j,y} + \epsilon_{j,y,n}),\\
+  \beta_{j,y} &\sim \Normal(0, \sigma_\text{bias}^2),\\
+  \epsilon_{j,y,n}|\beta_{j,y} &\sim \Normal(TK, \Sigma^2),\\
+  \Sigma^2 = TK.matrix.with \sigma_\text{bias}^2, \sigma_\text{dispersion}^2, \rho_\text{correlation}.
+  \end{align*}
+  This results in $N$ draws from a distribution with the same bias and dispersion.
 
-  We repeated this procedure $500$ times for each of the $27$
+  We repeated this procedure $1000$ times for each of the $27$
   possibilities in the design, and calculated CSMF accuracy, coverage
   probability, and TK something about change over time for all of
   them.
