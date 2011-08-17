@@ -111,133 +111,27 @@ def sim_data_for_validation(N,
     est_std = true_std*mc.runiform(pl.array(std_bias)*0.9, pl.array(std_bias)*1.1)
     sims = sim_data(N, est_cf, est_std, sum_to_one=False)
     return sims
-    
-def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female', keep_year='2010'):
-    """ Get data from CoDMod output on J drive
-    Input 
-    -----
-    level : int, between 1 and ?
-      level of causes to obtain data for (level 1 = A, B, C; each successive level contains more subdivisions) 
-    keep_age : string
-      the beginning of the age group to obtain data for (0, 0.01, 0.1, 1, 5, 10, ..., 80) 
-    keep_sex : string
-      male or female 
-    keep_year : string
-      in the range (1980, 2010) 
-    
-    Results
-    -------
-    lists of causes, mean estimates, lower bound estimates, upper bound estimates
-    """
-    # Currently this will only select causes at a given level: it needs to also select causes at higher levels that don't have children at the current level
- 
-    if os.name == 'nt':
-        root = "J:/"
-    else:
-        root = "/home/j/"
-    
-    # get cause list; keep only causes from the specified level; keep only observations that include the specified sex
-    cause_list = pl.csv2rec(root + 'Project/Causes of Death/CoDMod/Models/bigbang/covariate selection/bigbang_inputs.csv')
-    cause_level = pl.array([len(cause_list['cause'][i].split('.')) for i in range(pl.shape(cause_list)[0])])
-    if level == 1: 
-        cause_list = cause_list[(cause_list.cause == 'A')|(cause_list.cause == 'B')|(cause_list.cause == 'C')]
-    else: 
-        cause_list = cause_list[(cause_level==(level-1))&(cause_list.cause != 'A')&(cause_list.cause != 'B')&(cause_list.cause != 'C')]
-    cause_list = cause_list[(cause_list.sex == keep_sex)|(cause_list.sex == 'both')]
 
-    # read in data; only retain data for the country, age, and year specified 
-    count = 0 
-    num = pl.shape(cause_list)[0]
-    d_cause = []
-    d_deaths_mean = []
-    d_deaths_lower = []
-    d_deaths_upper = []
-    d_envelope = []
-    for cause, start_age, end_age in zip(cause_list.cause, cause_list.start_age, cause_list.end_age):
-        count += 1 
-        print str(count) + ' of ' + str(num)
-        if start_age == 'Early Neonatal': start_age = 'Early_Neonatal' 
-        if start_age == 'Post Neonatal': start_age = 'Post_Neonatal' 
-        if end_age == 'Early Neonatal': end_age = 'Early_Neonatal' 
-        if end_age == 'Post Neonatal': end_age = 'Post_Neonatal' 
-        print '  ' + cause + ' - ' + start_age + ' - ' + end_age
-        
-        # this is to correct for a temporary (according to Kyle) inconsistency in the cause list and the folder structure. 
-        if level == 1 and cause == 'B': 
-            start_age = 'Post_Neonatal'
-        if level == 2 and cause == 'B02':
-            if start_age == '1': end_age = '14'
-            if start_age == '25': start_age = '15'
+def get_cod_data(dir = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Input Data/prepUSA', 
+                 causes = ['HIV', 'Injuries', 'Measles'], age = 'Under_Five', iso3 = 'USA', sex = 'M'): 
+    csvs = {}
+    for c in causes: 
+        csvs[c] = csv.reader(open('%s/%s_%s_%s_%s.csv' % (dir, iso3, c, age, sex)))
+        csvs[c].next()
+    deaths = [[csvs[c].next()[2:12] for c in causes] for year in range(1980, 2012)]
+    deaths = pl.array(deaths, dtype='f')
+    T, J, N = deaths.shape
 
-        # this is a temporary fix to get around the issue of what model to use. 
-        if (cause == 'A04' or cause == 'A07' or cause == 'B02' or cause == 'B05'): 
-            model = 'bb3' 
-        elif (cause == 'A12'):
-            model = 'Archives/bb'
-        else: 
-            model = 'bb'
- 
-        csvdata = csv.reader(open(root + 'Project/Causes of Death/CoDMod/Models/' + cause + '/' + model + '_' + keep_sex + '_' + start_age + '_to_' + end_age + '/Results/deaths_country.csv'), delimiter=",", quotechar='"')
-        names = pl.array(csvdata.next())
-        iso3_row = pl.where(names == 'iso3')[0][0] ## WHYYYYYY
-        age_row = pl.where(names == 'age')[0][0] 
-        year_row = pl.where(names == 'year')[0][0]
-        cause_row = pl.where(names == 'cause')[0][0] 
-        mean_row = pl.where(names == 'final_deaths_mean')[0][0] 
-        lower_row = pl.where(names == 'final_deaths_lower')[0][0]
-        upper_row = pl.where(names == 'final_deaths_upper')[0][0] 
-        envelope_row = pl.where(names == 'envelope')[0][0]
+    csvs = csv.reader(open('%s/%s_%s_%s_%s.csv' % (dir, iso3, causes[0], age, sex))) 
+    csvs.next()  
+    envelope = [csvs.next()[1003] for year in range(1980, 2012)]
+    envelope = pl.array(envelope, dtype='f')
 
-        for row in csvdata:
-            if row[iso3_row] == keep_iso3 and row[age_row] == keep_age and row[year_row] == keep_year: 
-                d_cause.append(row[cause_row])
-                d_deaths_mean.append(row[mean_row])
-                d_deaths_lower.append(row[lower_row])
-                d_deaths_upper.append(row[upper_row])
-                d_envelope.append(row[envelope_row])
-    d_cause = pl.array(d_cause)
-    cf_mean = pl.array(d_deaths_mean, dtype='f') / pl.array(d_envelope, dtype = 'f')
-    cf_lower = pl.array(d_deaths_lower, dtype='f') / pl.array(d_envelope, dtype = 'f')
-    cf_upper = pl.array(d_deaths_upper, dtype='f') / pl.array(d_envelope, dtype = 'f')
-
-    cf_rec = pl.np.core.records.fromarrays([d_cause,cf_mean, cf_lower, cf_upper], names='cause,est,lower,upper')
-
-    return cf_rec
-
-def logit_normal_draw(cf_mean, std, N, J):
-    std = pl.array(std)
-    if mc.__version__ == '2.0rc2': # version on Omak 
-        X = [mc.invlogit(mc.rnormal(mu=cf_mean, tau=std**-2)) for n in range(N)]
-        Y = pl.array(X)
-    else: 
-        X = mc.rnormal(mu=cf_mean, tau=std**-2, size=(N,J))
-        Y = mc.invlogit(X)
-    return Y
-    
-def sim_cod_data(N, cf_rec): 
-    """ 
-    Create an NxJ matrix of simulated data (J is the number of causes and is determined
-    by the length of cf_mean). 
-
-    N - the number of simulations    
-    cf_rec - a recarray containing: 
-        cause - a list of causes 
-        est - the estimates of the cause fractions
-        lower - the lower bound of the cause fractions
-        upper - the upper bound of the cause fractions 
-    """
-
-    # logit the mean and bounds and approximate the standard deviation in logit space
-    cf_mean = mc.logit(cf_rec.est)
-    cf_lower = mc.logit(cf_rec.lower)
-    cf_upper = mc.logit(cf_rec.upper)
-    std = (cf_upper - cf_lower)/(2*1.96)
-
-    # draw from distribution and back transform the simulated values
-    J = len(cf_mean)
-    return logit_normal_draw(cf_mean, std, N, J)
+    cf = [deaths[t,:,:]/(envelope[t]*pl.ones((J, N))) for t in range(len(envelope))]
+    cf = pl.array(cf)
+    cf = cf.reshape(N,T,J)    
+    return cf
 
 
-    
 
 
