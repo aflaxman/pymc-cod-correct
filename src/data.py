@@ -1,6 +1,7 @@
 """ Class for wrangling data
 """
 
+import random 
 import pylab as pl
 import pymc as mc
 import csv 
@@ -112,24 +113,26 @@ def sim_data_for_validation(N,
     sims = sim_data(N, est_cf, est_std, sum_to_one=False)
     return sims
 
-def get_cod_data(dir = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Input Data/prepUSA', 
+def get_cod_data(dir = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Input Data/v02_prep_USA', 
                  causes = ['HIV', 'Injuries', 'Measles'], age = 'Under_Five', iso3 = 'USA', sex = 'M'): 
     csvs = {}
+    sim_length = {}
     for c in causes: 
-        csvs[c] = csv.reader(open('%s/%s_%s_%s_%s.csv' % (dir, iso3, c, age, sex)))
-        csvs[c].next()
-    deaths = [[csvs[c].next()[2:12] for c in causes] for year in range(1980, 2012)]
-    deaths = pl.array(deaths, dtype='f')
-    T, J, N = deaths.shape
-
-    csvs = csv.reader(open('%s/%s_%s_%s_%s.csv' % (dir, iso3, causes[0], age, sex))) 
-    csvs.next()  
-    envelope = [csvs.next()[1003] for year in range(1980, 2012)]
-    envelope = pl.array(envelope, dtype='f')
-
-    cf = [deaths[t,:,:]/(envelope[t]*pl.ones((J, N))) for t in range(len(envelope))]
-    cf = pl.array(cf)
-    cf = cf.reshape(N,T,J)    
+        csvs[c] = csv.reader(open('%s/%s+%s+%s+%s.csv' % (dir, iso3, c, age, sex)))
+        names = csvs[c].next()
+        sim_length[c] = len(names)-9
+    
+    cf = pl.zeros((1000, 31, len(causes)))
+    for j in range(len(causes)): 
+        cause = causes[j]
+        sims = sim_length[cause]
+        for t in range(31):
+            temp = csvs[cause].next()[2:(sims+3)] 
+            envelope = float(temp[-1])
+            deaths = temp[0:sims]
+            if sims < 1000: 
+                deaths += random.sample(deaths, (1000-sims))
+            cf[:,t,j] = pl.array(deaths, dtype='f')/(envelope*pl.ones(1000))   
     return cf
 
 
