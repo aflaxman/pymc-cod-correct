@@ -111,98 +111,33 @@ def sim_data_for_validation(N,
     est_std = true_std*mc.runiform(pl.array(std_bias)*0.9, pl.array(std_bias)*1.1)
     sims = sim_data(N, est_cf, est_std, sum_to_one=False)
     return sims
-    
-def get_cod_data(level=1, keep_age = '20', keep_iso3 = 'USA', keep_sex = 'female', keep_year='2010'):
-    """ Get data from CoDMod output on J drive
-    Input 
-    -----
-    level : int, between 1 and ?
-      level of causes to obtain data for (level 1 = A, B, C; each successive level contains more subdivisions) 
-    keep_age : string
-      the beginning of the age group to obtain data for (0, 0.01, 0.1, 1, 5, 10, ..., 80) 
-    keep_sex : string
-      male or female 
-    keep_year : string
-      in the range (1980, 2010) 
-    
-    Results
-    -------
-    lists of causes, mean estimates, lower bound estimates, upper bound estimates
-    """
-    # Currently this will only select causes at a given level: it needs to also select causes at higher levels that don't have children at the current level
- 
-    if os.name == 'nt':
-        root = "J:/"
-    else:
-        root = "/home/j/"
-    
-    # get cause list; keep only causes from the specified level; keep only observations that include the specified sex
-    cause_list = pl.csv2rec(root + 'Project/Causes of Death/CoDMod/Models/bigbang/covariate selection/bigbang_inputs.csv')
-    cause_level = pl.array([len(cause_list['cause'][i].split('.')) for i in range(pl.shape(cause_list)[0])])
-    if level == 1: 
-        cause_list = cause_list[(cause_list.cause == 'A')|(cause_list.cause == 'B')|(cause_list.cause == 'C')]
-    else: 
-        cause_list = cause_list[(cause_level==(level-1))&(cause_list.cause != 'A')&(cause_list.cause != 'B')&(cause_list.cause != 'C')]
-    cause_list = cause_list[(cause_list.sex == keep_sex)|(cause_list.sex == 'both')]
 
-    # read in data; only retain data for the country, age, and year specified 
-    count = 0 
-    num = pl.shape(cause_list)[0]
-    d_cause = []
-    d_deaths_mean = []
-    d_deaths_lower = []
-    d_deaths_upper = []
-    d_envelope = []
-    for cause, start_age, end_age in zip(cause_list.cause, cause_list.start_age, cause_list.end_age):
-        count += 1 
-        print str(count) + ' of ' + str(num)
-        if start_age == 'Early Neonatal': start_age = 'Early_Neonatal' 
-        if start_age == 'Post Neonatal': start_age = 'Post_Neonatal' 
-        if end_age == 'Early Neonatal': end_age = 'Early_Neonatal' 
-        if end_age == 'Post Neonatal': end_age = 'Post_Neonatal' 
-        print '  ' + cause + ' - ' + start_age + ' - ' + end_age
+def get_cod_data(iso3='USA', age_group='1_4', sex='F'):
+    """ TODO: write doc string for this function"""
+    import glob
+    
+    cause_list = []
+    fpath = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Input Data/v02_prep_%s/%s+*+%s+%s.csv' % (iso3, iso3, age_group, sex)
+    fnames = glob.glob(fpath)
+
+    # initialize input distribution array
+    N = 990  # TODO: get this from the data files
+    T = 32  # TODO: get this from the data files
+    J = len(fnames)
+    F = pl.zeros((N, T, J))
+
+    # fill input distribution array with data from files
+    for j, fname in enumerate(sorted(fnames)):
+        cause = fname.split('+')[1]  # TODO: make this less brittle and clearer
+        print 'loading cause', cause
+        F_j = pl.csv2rec(fname)
+
+        for n in range(N):
+            F[n, :, j] = F_j['ensemble_d%d'%(n+1)]
+
+        cause_list.append(cause)
         
-        # this is to correct for a temporary (according to Kyle) inconsistency in the cause list and the folder structure. 
-        if level == 1 and cause == 'B': 
-            start_age = 'Post_Neonatal'
-        if level == 2 and cause == 'B02':
-            if start_age == '1': end_age = '14'
-            if start_age == '25': start_age = '15'
-
-        # this is a temporary fix to get around the issue of what model to use. 
-        if (cause == 'A04' or cause == 'A07' or cause == 'B02' or cause == 'B05'): 
-            model = 'bb3' 
-        elif (cause == 'A12'):
-            model = 'Archives/bb'
-        else: 
-            model = 'bb'
- 
-        csvdata = csv.reader(open(root + 'Project/Causes of Death/CoDMod/Models/' + cause + '/' + model + '_' + keep_sex + '_' + start_age + '_to_' + end_age + '/Results/deaths_country.csv'), delimiter=",", quotechar='"')
-        names = pl.array(csvdata.next())
-        iso3_row = pl.where(names == 'iso3')[0][0] ## WHYYYYYY
-        age_row = pl.where(names == 'age')[0][0] 
-        year_row = pl.where(names == 'year')[0][0]
-        cause_row = pl.where(names == 'cause')[0][0] 
-        mean_row = pl.where(names == 'final_deaths_mean')[0][0] 
-        lower_row = pl.where(names == 'final_deaths_lower')[0][0]
-        upper_row = pl.where(names == 'final_deaths_upper')[0][0] 
-        envelope_row = pl.where(names == 'envelope')[0][0]
-
-        for row in csvdata:
-            if row[iso3_row] == keep_iso3 and row[age_row] == keep_age and row[year_row] == keep_year: 
-                d_cause.append(row[cause_row])
-                d_deaths_mean.append(row[mean_row])
-                d_deaths_lower.append(row[lower_row])
-                d_deaths_upper.append(row[upper_row])
-                d_envelope.append(row[envelope_row])
-    d_cause = pl.array(d_cause)
-    cf_mean = pl.array(d_deaths_mean, dtype='f') / pl.array(d_envelope, dtype = 'f')
-    cf_lower = pl.array(d_deaths_lower, dtype='f') / pl.array(d_envelope, dtype = 'f')
-    cf_upper = pl.array(d_deaths_upper, dtype='f') / pl.array(d_envelope, dtype = 'f')
-
-    cf_rec = pl.np.core.records.fromarrays([d_cause,cf_mean, cf_lower, cf_upper], names='cause,est,lower,upper')
-
-    return cf_rec
+    return F
 
 def logit_normal_draw(cf_mean, std, N, J):
     std = pl.array(std)
