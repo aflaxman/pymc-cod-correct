@@ -114,6 +114,7 @@ def sim_data_for_validation(N,
 
 def get_cod_data(iso3='USA', age_group='1_4', sex='F'):
     """ TODO: write doc string for this function"""
+    print 'loading', iso3, age_group, sex
     import glob
     
     cause_list = []
@@ -133,11 +134,12 @@ def get_cod_data(iso3='USA', age_group='1_4', sex='F'):
         F_j = pl.csv2rec(fname)
 
         for n in range(N):
-            F[n, :, j] = F_j['ensemble_d%d'%(n+1)]
+            F[n, :, j] = F_j['ensemble_d%d'%(n+1)]/F_j['envelope']
 
         cause_list.append(cause)
         
-    return F
+    print 'loading complete'
+    return F, cause_list
 
 def logit_normal_draw(cf_mean, std, N, J):
     std = pl.array(std)
