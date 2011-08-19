@@ -136,8 +136,9 @@ def get_cod_data(iso3='USA', age_group='1_4', sex='F'):
         for n in range(N):
             F[n, :, j] = F_j['ensemble_d%d'%(n+1)]/F_j['envelope']
 
+        assert not pl.any(pl.isnan(F)), '%s should have no missing values' % fname
         cause_list.append(cause)
-        
+    
     print 'loading complete'
     return F, cause_list
 
