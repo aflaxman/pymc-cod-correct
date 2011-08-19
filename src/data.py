@@ -122,16 +122,18 @@ def get_cod_data(dir = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Co
         names = csvs[c].next()
         sim_length[c] = len(names)-9
     
-    cf = pl.zeros((1000, 31, len(causes)))
+    cf = pl.zeros((1000, 32, len(causes)))
     for j in range(len(causes)): 
-        cause = causes[j]
+        cause = causes[j]; print(cause)
         sims = sim_length[cause]
-        for t in range(31):
+        for t in range(32):
             temp = csvs[cause].next()[2:(sims+3)] 
             envelope = float(temp[-1])
             deaths = temp[0:sims]
             if sims < 1000: 
                 deaths += random.sample(deaths, (1000-sims))
+            if sims > 1000: 
+                deaths = random.sample(deaths, 1000)
             cf[:,t,j] = pl.array(deaths, dtype='f')/(envelope*pl.ones(1000))   
     return cf
 
