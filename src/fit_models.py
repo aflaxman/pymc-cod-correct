@@ -5,14 +5,12 @@ import os
 import re
 import subprocess
 
-outdir = '/home/j/Project/Causes of Death/Under Five Deaths/Cod Correct Output'
+outdir = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Output'
 indir = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Input Data' 
 
 folders = [folder for folder in os.listdir(indir) if re.search('v02', folder)]
 countries = [s[9:12] for s in folders]
 ages = ['Early_Neonatal', 'Late_Neonatal', 'Post_Neonatal', '1_4', 'Under_Five']
-
-countries = countries[:3]
 
 for age in ages: 
     for iso3 in countries: 

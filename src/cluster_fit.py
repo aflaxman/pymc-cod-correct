@@ -5,7 +5,7 @@ import models
 import sys
 import pylab as pl 
 
-outdir = '/home/j/Project/Causes of Death/Under Five Deaths/Cod Correct Output'
+outdir = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Output'
 indir = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Input Data' 
 
 age, iso3, sex = sys.argv[1:4]
@@ -16,7 +16,7 @@ causes.remove('HIV') # temporary until Miriam fixes the HIV files
 causes.remove('Tetanus') # temporary until Miriam reformats the Tetanus files 
 
 cf = data.get_cod_data(full_dir, causes, age, iso3, sex)
-m, pi = models.fit_latent_simplex(cf, 100, 50, 5) 
+m, pi = models.fit_latent_simplex(cf) 
 N, T, J = pi.shape
 
 pi.shape = (N*T, J)
