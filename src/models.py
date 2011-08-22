@@ -82,7 +82,7 @@ def fit_latent_simplex(X, iter=10000, burn=5000, thin=5):
     vars = latent_simplex(X)
 
     m = mc.MAP([vars['alpha'], vars['X_obs']])
-    m.fit(method='fmin_powell', verbose=0)
+    m.fit(method='fmin_powell', verbose=1)
     print vars['pi'].value
     
     m = mc.MCMC(vars)

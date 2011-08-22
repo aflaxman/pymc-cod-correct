@@ -1,3 +1,8 @@
+# matplotlib backend setup
+import matplotlib
+matplotlib.use("AGG") 
+
+
 import networkx as nx
 import pylab as pl
 import numpy as np
@@ -36,3 +41,43 @@ def plot_all_sim_data(X, color='b'):
             if j == i+1:
                 pl.ylabel('csmf (cause %d)' %(i+1))
                 pl.xlabel('csmf (cause %d)' %(j+1))
+
+def plot_F_and_pi(F, pi, causes, title=''):
+    N, T, J = F.shape
+    pl.figure(figsize=(T, 2*J))
+
+    left = 1./(T+5.)
+    right = 1-.05/T
+    bottom = 1/(T+5.)
+    top = 1-.05/T
+
+    xmax=F.max()
+
+    dj = (top-bottom)/J
+    dt = (right-left)/T
+
+    ax = {}
+    for jj, j in enumerate(sorted(range(J), key=lambda j: pi[:,:,j].mean())):
+        for t in range(T):
+            pl.axes([left + t*dt, bottom + jj*dj, dt, dj])
+            pl.semilogy(pl.randn(N), F[:, t, j], 'b.', alpha=.5, zorder=-100)
+
+            pi[:,t,j].sort()
+            below = pi[:, t, j].mean() - pi[:,t,j][.025*N]
+            above = pi[:,t,j][.975*N] - pi[:, t, j].mean()
+            pl.errorbar([0], pi[:, t, j].mean(), [[below], [above]],
+                        fmt='gs', ms=10, mew=1, mec='white', linewidth=3, capsize=10,
+                        zorder=100)
+            pl.text(-2.75, xmax*.5, '%.4f'%pi[:,t,j].mean(), va='top', ha='left')
+            pl.xticks([])
+            if jj == 0:
+                pl.xlabel(t+1980)
+
+            if t > 0:
+                pl.yticks([])
+            else:
+                pl.ylabel(causes[j])
+
+            pl.axis([-3, 3, F[:,:,j].min(), xmax])
+    if title:
+        pl.figtext(.01, .99, title, va='top', ha='left')
