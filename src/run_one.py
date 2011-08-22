@@ -4,7 +4,7 @@ import models
 
 import pylab as pl
 
-iso3='BWA'
+iso3='ETH'
 
 F, causes = data.get_cod_data(iso3=iso3)
 model, pi = models.fit_latent_simplex(F)

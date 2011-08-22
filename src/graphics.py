@@ -44,7 +44,7 @@ def plot_all_sim_data(X, color='b'):
 
 def plot_F_and_pi(F, pi, causes, title=''):
     N, T, J = F.shape
-    pl.figure(figsize=(T, 2*J))
+    pl.figure(figsize=(.5*T, 2*J))
 
     left = 1./(T+5.)
     right = 1-.05/T
@@ -60,7 +60,7 @@ def plot_F_and_pi(F, pi, causes, title=''):
     for jj, j in enumerate(sorted(range(J), key=lambda j: pi[:,:,j].mean())):
         for t in range(T):
             pl.axes([left + t*dt, bottom + jj*dj, dt, dj])
-            pl.semilogy(pl.randn(N), F[:, t, j], 'b.', alpha=.5, zorder=-100)
+            pl.plot(pl.randn(N), F[:, t, j], 'b.', alpha=.5, zorder=-100)
 
             pi[:,t,j].sort()
             below = pi[:, t, j].mean() - pi[:,t,j][.025*N]
@@ -68,7 +68,9 @@ def plot_F_and_pi(F, pi, causes, title=''):
             pl.errorbar([0], pi[:, t, j].mean(), [[below], [above]],
                         fmt='gs', ms=10, mew=1, mec='white', linewidth=3, capsize=10,
                         zorder=100)
-            pl.text(-2.75, xmax*.5, '%.4f'%pi[:,t,j].mean(), va='top', ha='left')
+            pl.text(-2.75, xmax*.9,
+                    'in=%.2f\nout=%.2f\nres=%.2f'%(F[:,t,j].mean(), pi[:,t,j].mean(), F[:,t,j].mean() - pi[:,t,j].mean()),
+                    va='top', ha='left')
             pl.xticks([])
             if jj == 0:
                 pl.xlabel(t+1980)
@@ -78,6 +80,6 @@ def plot_F_and_pi(F, pi, causes, title=''):
             else:
                 pl.ylabel(causes[j])
 
-            pl.axis([-3, 3, F[:,:,j].min(), xmax])
+            pl.axis([-3, 3, 0, xmax])
     if title:
         pl.figtext(.01, .99, title, va='top', ha='left')
