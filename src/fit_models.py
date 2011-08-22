@@ -1,33 +1,21 @@
-import os 
-import csv
-import pymc as mc 
-import pylab as pl 
-import scipy.stats.mstats as sp
 
-os.chdir('C:/Users/ladwyer/pymc-cod-correct/src/') # TODO: make this STATA-ism go away!
 import data
-import graphics
-import models 
+import models
+import os 
+import re
+import subprocess
 
-years = range(1980, 2011)
-isos = ['USA', 'ZMB'] 
-sexes = ['female'] 
-ages = ['20'] 
+outdir = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Output'
+indir = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Input Data' 
 
-for iso in isos: 
-    for sex in sexes: 
-        for age in ages: 
-            for year in years: 
-            
-                year = str(year)
-               
-                cf = data.get_cod_data(level=1, keep_age = age, keep_iso3 = iso, keep_sex = sex, keep_year= year)
-                X = data.sim_cod_data(1000, cf)
-                data.array2csv(X, '../data/sim_cod_data_%s_%s.csv' % (iso, year))
-                
-                bad_model = models.bad_model(X) 
-                data.array2csv(bad_model.T, '../data/bad_model_%s_%s.csv' % (iso, year))
+folders = [folder for folder in os.listdir(indir) if re.search('v02', folder)]
+countries = [s[9:12] for s in folders]
+ages = ['Early_Neonatal', 'Late_Neonatal', 'Post_Neonatal', '1_4', 'Under_Five']
 
-                latent_dirichlet = models.fit_latent_dirichlet(X, 100, 50, 5)
-                data.array2csv(latent_dirichlet.T, '../data/latent_dirichlet_%s_%s.csv' % (iso, year))
+for age in ages: 
+    for iso3 in countries: 
+        for sex in ['M', 'F']: 
+            jobname = 'cc%s_%s_%s' % (iso3, sex, age)
+            call = 'qsub -cwd -N %s cluster_shell.sh cluster_fit.py "%s" "%s" "%s"' % (jobname, age, iso3, sex)
+            subprocess.call(call, shell=True)  
 

@@ -1,6 +1,7 @@
 """ Class for wrangling data
 """
 
+import random 
 import pylab as pl
 import pymc as mc
 import csv 
@@ -112,36 +113,6 @@ def sim_data_for_validation(N,
     sims = sim_data(N, est_cf, est_std, sum_to_one=False)
     return sims
 
-def get_cod_data(iso3='USA', age_group='1_4', sex='F'):
-    """ TODO: write doc string for this function"""
-    print 'loading', iso3, age_group, sex
-    import glob
-    
-    cause_list = []
-    fpath = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Input Data/v02_prep_%s/%s+*+%s+%s.csv' % (iso3, iso3, age_group, sex)
-    fnames = glob.glob(fpath)
-
-    # initialize input distribution array
-    N = 990  # TODO: get this from the data files
-    T = 32  # TODO: get this from the data files
-    J = len(fnames)
-    F = pl.zeros((N, T, J))
-
-    # fill input distribution array with data from files
-    for j, fname in enumerate(sorted(fnames)):
-        cause = fname.split('+')[1]  # TODO: make this less brittle and clearer
-        print 'loading cause', cause
-        F_j = pl.csv2rec(fname)
-
-        for n in range(N):
-            F[n, :, j] = F_j['ensemble_d%d'%(n+1)]/F_j['envelope']
-
-        assert not pl.any(pl.isnan(F)), '%s should have no missing values' % fname
-        cause_list.append(cause)
-    
-    print 'loading complete'
-    return F, cause_list
-
 def logit_normal_draw(cf_mean, std, N, J):
     std = pl.array(std)
     if mc.__version__ == '2.0rc2': # version on Omak 
@@ -171,11 +142,60 @@ def sim_cod_data(N, cf_rec):
     cf_upper = mc.logit(cf_rec.upper)
     std = (cf_upper - cf_lower)/(2*1.96)
 
-    # draw from distribution and back transform the simulated values
-    J = len(cf_mean)
-    return logit_normal_draw(cf_mean, std, N, J)
-
-
+def get_cod_data(dir = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Input Data/v02_prep_USA', 
+                 causes = ['HIV', 'Injuries', 'Measles'], age = 'Under_Five', iso3 = 'USA', sex = 'M'): 
+    csvs = {}
+    sim_length = {}
+    for c in causes: 
+        csvs[c] = csv.reader(open('%s/%s+%s+%s+%s.csv' % (dir, iso3, c, age, sex)))
+        names = csvs[c].next()
+        sim_length[c] = len(names)-9
     
+    cf = pl.zeros((1000, 32, len(causes)))
+    for j in range(len(causes)): 
+        cause = causes[j]; print(cause)
+        sims = sim_length[cause]
+        for t in range(32):
+            temp = csvs[cause].next()[2:(sims+3)] 
+            envelope = float(temp[-1])
+            deaths = temp[0:sims]
+            if sims < 1000: 
+                deaths += random.sample(deaths, (1000-sims))
+            if sims > 1000: 
+                deaths = random.sample(deaths, 1000)
+            cf[:,t,j] = pl.array(deaths, dtype='f')/(envelope*pl.ones(1000))   
+    return cf
+
+
+def get_cod_data_all_causes(iso3='USA', age_group='1_4', sex='F'):
+    """ TODO: write doc string for this function"""
+    print 'loading', iso3, age_group, sex
+    import glob
+    
+    cause_list = []
+    fpath = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Input Data/v02_prep_%s/%s+*+%s+%s.csv' % (iso3, iso3, age_group, sex)
+    fnames = glob.glob(fpath)
+
+    # initialize input distribution array
+    N = 990  # TODO: get this from the data files
+    T = 32  # TODO: get this from the data files
+    J = len(fnames)
+    F = pl.zeros((N, T, J))
+
+    # fill input distribution array with data from files
+    for j, fname in enumerate(sorted(fnames)):
+        cause = fname.split('+')[1]  # TODO: make this less brittle and clearer
+        print 'loading cause', cause
+        F_j = pl.csv2rec(fname)
+
+        for n in range(N):
+            F[n, :, j] = F_j['ensemble_d%d'%(n+1)]/F_j['envelope']
+
+        assert not pl.any(pl.isnan(F)), '%s should have no missing values' % fname
+        cause_list.append(cause)
+    
+    print 'loading complete'
+    return F, cause_list
+
 
 
