@@ -9,9 +9,16 @@ import random
 random.shuffle(countries)
 for iso3 in countries:
     print iso3
-    
-    F, causes = data.get_cod_data_all_causes(iso3=iso3)
-    model, pi = models.fit_latent_simplex(F)
+    try:
+        F, causes = data.get_cod_data_all_causes(iso3=iso3)
+        N, T, J = F.shape
+        pi = pl.zeros((1000, T, J))
+        for t in range(T):
+            model, pi_t = models.fit_latent_simplex(F[:,t:(t+1),:])
+            pi[:,t,:] = pi_t[:,0,:]
+    except Exception, e:
+        print e
+        continue
 
     graphics.plot_F_and_pi(F, pi, causes, iso3)
 

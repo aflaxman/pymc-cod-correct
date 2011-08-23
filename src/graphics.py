@@ -61,21 +61,22 @@ def plot_F_and_pi(F, pi, causes, title=''):
         for t in range(T):
             pl.axes([left + t*dt, bottom + jj*dj, dt, dj])
             pl.plot(pl.randn(N), F[:, t, j], 'b.', alpha=.5, zorder=-100)
+            pl.plot(.5*pl.randn(N), pi[:N, t, j], 'g.', alpha=.5, zorder=100)
 
-            pi[:,t,j].sort()
-            below = pi[:, t, j].mean() - pi[:,t,j][.025*N]
-            above = pi[:,t,j][.975*N] - pi[:, t, j].mean()
-            pl.errorbar([0], pi[:, t, j].mean(), [[below], [above]],
-                        fmt='gs', ms=10, mew=1, mec='white', linewidth=3, capsize=10,
-                        zorder=100)
+            #pi[:,t,j].sort()
+            #below = pi[:, t, j].mean() - pi[:,t,j][.025*N]
+            #above = pi[:,t,j][.975*N] - pi[:, t, j].mean()
+            #pl.errorbar([0], pi[:, t, j].mean(), [[below], [above]],
+            #            fmt='gs', ms=10, mew=1, mec='white', linewidth=3, capsize=10,
+            #            zorder=100)
             pl.text(-2.75, xmax*.9,
                     '%.2f\n%.2f\n%.2f'%(F[:,t,j].mean(), pi[:,t,j].mean(), F[:,t,j].mean() - pi[:,t,j].mean()),
                     va='top', ha='left')
             pl.xticks([])
             if jj == 0:
-                pl.xlabel(t+1980)
+                pl.xlabel('%d\nsum=%.2f' % (t+1980, F[:,t,:].sum()/N))
                 pl.text(-5.75, xmax*.9,
-                    'in:\nout:\nres:'%(F[:,t,j].mean(), pi[:,t,j].mean(), F[:,t,j].mean() - pi[:,t,j].mean()),
+                    'in:\nout:\nres:',
                     va='top', ha='left')
 
             if t > 0:
