@@ -44,9 +44,9 @@ def plot_all_sim_data(X, color='b'):
 
 def plot_F_and_pi(F, pi, causes, title=''):
     N, T, J = F.shape
-    pl.figure(figsize=(.5*T, 2*J))
+    pl.figure(figsize=(.5*T, 1.*J))
 
-    left = 1./(T+5.)
+    left = 2./(T+5.)
     right = 1-.05/T
     bottom = 1/(T+5.)
     top = 1-.05/T
@@ -69,11 +69,14 @@ def plot_F_and_pi(F, pi, causes, title=''):
                         fmt='gs', ms=10, mew=1, mec='white', linewidth=3, capsize=10,
                         zorder=100)
             pl.text(-2.75, xmax*.9,
-                    'in=%.2f\nout=%.2f\nres=%.2f'%(F[:,t,j].mean(), pi[:,t,j].mean(), F[:,t,j].mean() - pi[:,t,j].mean()),
+                    '%.2f\n%.2f\n%.2f'%(F[:,t,j].mean(), pi[:,t,j].mean(), F[:,t,j].mean() - pi[:,t,j].mean()),
                     va='top', ha='left')
             pl.xticks([])
             if jj == 0:
                 pl.xlabel(t+1980)
+                pl.text(-5.75, xmax*.9,
+                    'in:\nout:\nres:'%(F[:,t,j].mean(), pi[:,t,j].mean(), F[:,t,j].mean() - pi[:,t,j].mean()),
+                    va='top', ha='left')
 
             if t > 0:
                 pl.yticks([])
