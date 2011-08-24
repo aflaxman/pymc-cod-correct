@@ -82,8 +82,8 @@ def fit_latent_simplex(X, iter=10000, burn=5000, thin=5):
     vars = latent_simplex(X)
 
     m = mc.MAP([vars['alpha'], vars['X_obs']])
-    m.fit(method='fmin_powell', verbose=1)
-    print vars['pi'].value
+    m.fit(method='fmin_powell', verbose=0)
+    #print vars['pi'].value
     
     m = mc.MCMC(vars)
     for alpha_t in m.alpha:
@@ -93,7 +93,7 @@ def fit_latent_simplex(X, iter=10000, burn=5000, thin=5):
     pi = m.pi.trace()
 
     print 'mean: ', pl.floor(m.pi.stats()['mean']*100.+.5)/100.
-    print 'ui:\n', pl.floor(m.pi.stats()['95% HPD interval']*100.+.5)/100.
+    #print 'ui:\n', pl.floor(m.pi.stats()['95% HPD interval']*100.+.5)/100.
 
     return m, pi.view(pl.recarray)
     

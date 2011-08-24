@@ -48,7 +48,7 @@ def plot_F_and_pi(F, pi, causes, title=''):
 
     left = 2./(T+5.)
     right = 1-.05/T
-    bottom = 1/(T+5.)
+    bottom = 2./(T+5.)
     top = 1-.05/T
 
     xmax=F.max()
@@ -70,14 +70,12 @@ def plot_F_and_pi(F, pi, causes, title=''):
             #            fmt='gs', ms=10, mew=1, mec='white', linewidth=3, capsize=10,
             #            zorder=100)
             pl.text(-2.75, xmax*.9,
-                    '%.2f\n%.2f\n%.2f'%(F[:,t,j].mean(), pi[:,t,j].mean(), F[:,t,j].mean() - pi[:,t,j].mean()),
+                    '%.0f\n%.0f\n%.0f'%(100*F[:,t,j].mean(), 100*pi[:,t,j].mean(), 100*pi[:,t,j].mean() - 100*F[:,t,j].mean()),
                     va='top', ha='left')
             pl.xticks([])
+            pl.yticks([.25,.5,.75])
             if jj == 0:
-                pl.xlabel('%d\nsum=%.2f' % (t+1980, F[:,t,:].sum()/N))
-                pl.text(-5.75, xmax*.9,
-                    'in:\nout:\nres:',
-                    va='top', ha='left')
+                pl.xlabel('%d\n%.0f' % (t+1980, 100*F[:,t,:].sum()/N))
 
             if t > 0:
                 pl.yticks([])

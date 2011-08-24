@@ -14,6 +14,7 @@ for iso3 in countries:
         N, T, J = F.shape
         pi = pl.zeros((1000, T, J))
         for t in range(T):
+            print t+1, 'of', T
             model, pi_t = models.fit_latent_simplex(F[:,t:(t+1),:])
             pi[:,t,:] = pi_t[:,0,:]
     except Exception, e:
