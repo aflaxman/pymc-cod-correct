@@ -174,6 +174,7 @@ def get_cod_data_all_causes(iso3='USA', age_group='1_4', sex='F'):
     
     cause_list = []
     fpath = '/home/j/Project/Causes of Death/Under Five Deaths/CoD Correct Input Data/v02_prep_%s/%s+*+%s+%s.csv' % (iso3, iso3, age_group, sex)
+    #fpath = '/home/j/Project/GBD/dalynator/data/cod_correct_input_pos/run_9_cause_*.csv'  # use Mike's validation data
     fnames = glob.glob(fpath)
 
     # initialize input distribution array
@@ -185,11 +186,13 @@ def get_cod_data_all_causes(iso3='USA', age_group='1_4', sex='F'):
     # fill input distribution array with data from files
     for j, fname in enumerate(sorted(fnames)):
         cause = fname.split('+')[1]  # TODO: make this less brittle and clearer
+        #cause = str(j) # use Mike's validation data causes
         print 'loading cause', cause
         F_j = pl.csv2rec(fname)
 
         for n in range(N):
             F[n, :, j] = F_j['ensemble_d%d'%(n+1)]/F_j['envelope']
+            #F[n, :, j] = F_j['d%d'%(n+1)]/F_j['envelope'] # use Mike's validation data
 
         assert not pl.any(pl.isnan(F)), '%s should have no missing values' % fname
         cause_list.append(cause)

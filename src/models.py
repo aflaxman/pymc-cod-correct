@@ -12,6 +12,20 @@ def bad_model(X):
         Y[:,t,:] = X[:,t,:] / pl.outer(pl.array(X[:,t,:]).sum(axis=1), pl.ones(J))
     return Y.view(pl.recarray) 
 
+def new_bad_model(F):
+    """ Results in a matrix with shape matching X, but all rows sum to 1"""
+    N, T, J = F.shape
+    pi = pl.zeros_like(F)
+    for t in range(T):
+        u = F[:,t,:].var(axis=0)
+        u /= pl.sqrt(pl.dot(u,u))
+        F_t_par = pl.dot(pl.atleast_2d(pl.dot(F[:,t,:], u)).T, pl.atleast_2d(u))
+        F_t_perp = F[:,t,:] - F_t_par
+        for n in range(N):
+            alpha = (1 - F_t_perp[n].sum()) / F_t_par[n].sum()
+            pi[n,t,:] = F_t_perp[n,:] + alpha*F_t_par[n,:]
+    return pi
+
 def latent_simplex(X):
     """ TODO: describe this function"""
     N, T, J = X.shape
